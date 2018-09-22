@@ -1,0 +1,122 @@
+#include <stdio.h>
+#include <locale.h>
+#include <malloc.h>
+#include <assert.h>
+#include <mem.h>
+
+void swap(char **a, char **b);
+
+void stringArrSort(char *lines[], int left, int right);
+
+int part(char *lines[], int left, int right);
+
+struct TextParametrs {
+    int numSym;
+    int numStr;
+};
+
+struct TextParametrs textPar(FILE *input);
+
+int main() {
+    setlocale(LC_ALL, "Rus");
+    FILE *input = fopen("input.txt", "r");
+    FILE *output = fopen("output.txt", "w");
+    fprintf(output, "Text sorting from \"input.txt\" to \"output.txt\"\n");
+    fprintf(output, "Program by Nazmiev Airat\n\n");
+
+    struct TextParametrs txtPar = textPar(input);
+
+    char *buffer = (char *) calloc(txtPar.numSym, sizeof(char));//sizeof
+    fread(buffer, sizeof(*buffer), txtPar.numSym, input);
+    buffer[txtPar.numSym] = '\0';
+
+    fclose(input);
+
+    char **str_ptr = (char **) calloc(txtPar.numStr, sizeof(char));
+
+    int num = 0;
+    str_ptr[num++] = &buffer[0];
+
+    for (int i = 0; i < txtPar.numSym - 1; i++) {
+        if (buffer[i] == '\n') {
+            str_ptr[num++] = &buffer[i + 1];
+        }
+    }
+
+    for (int i = 0; i < txtPar.numSym; i++) {
+        if (buffer[i] == '\n') buffer[i] = '\0';
+    }
+
+    stringArrSort(str_ptr, 0, txtPar.numStr - 1);
+
+    char tmp = '\0';
+
+    for (int i = 0; i < txtPar.numStr; i++) {
+        int x = 0;
+        while ((tmp = *(str_ptr[i] + x)) != '\0') {
+            fputc(tmp, output);
+            x++;
+        }
+        fputc('\n', output);
+    }
+
+    fclose(output);
+
+    free(buffer);
+    free(str_ptr);
+}
+
+struct TextParametrs textPar(FILE *input) {
+    char sym = 0;
+    struct TextParametrs par = {0, 0};
+    while ((sym = fgetc(input)) != EOF) {
+        if (sym == '\n') {
+            par.numStr++;
+        }
+        par.numSym++;
+    }
+    fseek(input, SEEK_END, 1);
+    if ((sym = fgetc(input)) != '\n') {
+        par.numStr++;
+    }
+    fseek(input, SEEK_SET, 0);
+    return par;
+}
+
+void stringArrSort(char *lines[], int left, int right) {
+    assert(lines != NULL);
+
+    if (left < right) {
+        int m = part(lines, left, right);
+        stringArrSort(lines, left, m);
+        stringArrSort(lines, m + 1, right);
+    }
+}
+
+int part(char *lines[], int left, int right) {
+    assert(lines != NULL);
+
+    char *key = lines[left + (right - left) / 2];
+    int i = left;
+    int j = right;
+    while (i <= j) {
+        while (strcmp(lines[i], key) < 0)
+            i++;
+        while (strcmp(lines[j], key) > 0)
+            j--;
+        if (i >= j)
+            break;
+        char *tmp = lines[i];
+        lines[i] = lines[j];
+        lines[j] = tmp;
+    }
+    return j;
+}
+
+void swap(char **a, char **b) {
+    assert(a != NULL);
+    assert(b != NULL);
+    char **buff = a;
+    a = b;
+    b = buff;
+}
