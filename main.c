@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <locale.h>
+#include <malloc.h>
+#include <assert.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
+//! @File main.c
+//! Text sorting program
+//! @mainpage
+//! - main.c
+
+/*!
+ * @brief linking the beginnings of strings in buffer to str_ptr
+ * @param buffer the source buffer of chars
+ * @param str_ptr array of char pointers
+ * @param numSym number of elements in buffer
+ */
+
+void linking(char buffer[], char *str_ptr[], int numSym);
+
+/*!
+ * @brief Sorting array of char pointers (strings), using functions int part(char *lines[], int left, int right) and void swap(char **a, char **b)
+ * @param lines array of char pointers
+ * @param left left edge of sorting
+ * @param right right edge of sorting
+ */
+
+void stringArrSort(char *lines[], int left, int right);
+
+/*!
+ * @brief Partitition for stringArrSort
+ * @param lines array of char pointers
+ * @param left left edge of sorting
+ * @param right edge of sorting
+ * @return separating index (left elements are smaller and right elements are bigger than the element with this index)
+ */
+
+int part(char *lines[], int left, int right);
+
+/*!
+ * @brief swap two char ** elements
+ * @param a first char ** element
+ * @param b second char ** element
+ */
+
+void swap(char **a, char **b);
+
+/*!
+ * @brief Creates buffer and linked buffer
+ * @param input input file
+ * @return structure LinkedBuffer, includes string array (char *buffer), array of char pointers (char **str_ptr) to strings from buffer,
+ * number of symbols (numsym) and strings (numstr) in buffer
+ */
+
+struct LinkedBuffer BufferLinking(FILE *input);
+
+/*!
+ * @brief Printing in output file array of strings
+ * @param output output file
+ * @param str_ptr array of char pointers
+ * @param numStr number of elements in str_ptr (number of strings)
+ */
+
+void writeText(FILE *output, char *str_ptr[], int numStr);
+
+/*!
+ * @brief structure includes string array (char *buffer), array of char pointers (char **str_ptr) to strings from buffer,
+ * number of symbols (numsym) and strings (numstr) in buffer
+ */
+
+struct LinkedBuffer {
+    char *buffer;
+    char **str_ptr;
+    int numSym;
+    int numStr;
+};
+
+int main() {
+    setlocale(LC_ALL, "Rus");
+
+    FILE *input = NULL;
+
+    if ((input = fopen("input.txt", "r")) == NULL) {
+        fprintf(stderr, "Cannot open file \"input.txt\"");
+        exit(-1);
+    }
+
+    FILE *output = fopen("output.txt", "w");
+
+    assert(input != NULL);
+    assert(output != NULL);
+
+    fprintf(output, "Text sorting from \"input.txt\" to \"output.txt\"\n");
+    fprintf(output, "Program by Nazmiev Airat\n\n");
+
+    struct LinkedBuffer linkedBuff = BufferLinking(input);
+
+    fclose(input);
+
+    stringArrSort(linkedBuff.str_ptr, 0, linkedBuff.numStr - 1);
+
+    writeText(output, linkedBuff.str_ptr, linkedBuff.numStr);
+
+    fclose(output);
+
+    free(linkedBuff.buffer);
+    free(linkedBuff.str_ptr);
+}
+
+struct LinkedBuffer BufferLinking(FILE *input) {
+    if (input == NULL) {
+        fprintf(stderr, "Cannot open file");
+        exit(-1);
+    }
+
+    struct stat fileStat = {0, 0, 0, 0};
+    fstat(fileno(input), &fileStat);
+
+    char *buffer = (char *) calloc(fileStat.st_size, sizeof(*buffer));//sizeof
+
+    char t = 0;
+    int numStr = 0;
+    int numSym = 0;
+
+    while ((t = fgetc(input)) != EOF) {
+        if (t == '\n') {
+            buffer[numSym++] = '\0';
+            numStr++;
+        } else {
+            buffer[numSym++] = t;
+        }
+    }
+
+    fseek(input, SEEK_END, 1);
+
+    if ((t = fgetc(input)) != '\n') {
+        numStr++;
+    }
+
+    fseek(input, SEEK_SET, 0);
+
+    char **str_ptr = (char **) calloc(numStr, sizeof(*str_ptr));
+    struct LinkedBuffer linkedBuff = {buffer, str_ptr, numSym, numStr};
+    linkedBuff.buffer[numSym] = '\0';
+
+    linking(linkedBuff.buffer, linkedBuff.str_ptr, linkedBuff.numSym);
+
+    return linkedBuff;
+}
+
+void linking(char buffer[], char *str_ptr[], int numSym) {
+    assert(numSym >= 0);
+
+    int num = 0;
+    str_ptr[num++] = &buffer[0];
+
+    for (int i = 0; i < numSym - 1; i++) {
+        if (buffer[i] == '\0') {
+            str_ptr[num++] = &buffer[i + 1];
+        }
+    }
+}
+
+void stringArrSort(char *lines[], int left, int right) {
+    assert(left <= right);
+    assert((left >= 0) && (right >= 0));
+
+    if (left < right) {
+        int m = part(lines, left, right);
+        stringArrSort(lines, left, m);
+        stringArrSort(lines, m + 1, right);
+    }
+}
+
+int part(char *lines[], int left, int right) {
+    assert(left < right);
+    assert((left >= 0) && (right > 0));
+
+    char *key = lines[left + (right - left) / 2];
+    int i = left;
+    int j = right;
+
+    while (i <= j) {
+        while (strcmp(lines[i], key) < 0)
+            i++;
+        while (strcmp(lines[j], key) > 0)
+            j--;
+        if (i >= j)
+            break;
+        swap(&lines[i++], &lines[j--]);
+    }
+
+    return j;
+}
+
+void swap(char **a, char **b) {
+    assert(a != NULL);
+    assert(b != NULL);
+
+    char *tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void writeText(FILE *output, char *str_ptr[], int numStr) {
+    assert(numStr >= 0);
+
+    char tmp = 0;
+
+    for (int i = 0; i < numStr; i++) {
+        int x = 0;
+
+        while ((tmp = *(str_ptr[i] + x)) != '\0') {
+            fputc(tmp, output);
+            x++;
+        }
+
+        fputc('\n', output);
+    }
+}
