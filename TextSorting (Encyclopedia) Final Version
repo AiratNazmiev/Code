@@ -75,7 +75,7 @@ struct LinkedBuffer bufferLinking(FILE *input);
  * @return structure TextParameters, includes number of symbols (numSym), number of strings (numStr)
  */
 
-struct TextParameters readText(FILE *input, char *buffer);
+struct TextParameters readText(FILE *input, char *buffer, int len);
 
 /*!
  * @brief copy structure LinkedBuffer source to new buffer
@@ -102,7 +102,7 @@ void deleteText(struct LinkedBuffer linkedBuff);
 void writeText(FILE *output, char *str_ptr[], int numStr);
 
 /*!
- * @brief compare strings a and b from the end
+ * @brief compare strings a and b from the end (ignoring punctuation)
  * @param a first string
  * @param b second string
  * @return 1 if a > b, -1 if a < b, 0 if a = b
@@ -187,7 +187,7 @@ struct LinkedBuffer bufferLinking(FILE *input) {
 
     char *buffer = (char *) calloc(fileStat.st_size, sizeof(*buffer));
 
-    struct TextParameters txtPar = readText(input, buffer);
+    struct TextParameters txtPar = readText(input, buffer, fileStat.st_size);
 
     char **str_ptr = (char **) calloc(txtPar.numStr, sizeof(*str_ptr));
     struct LinkedBuffer linkedBuff = {buffer, str_ptr, txtPar.numSym, txtPar.numStr};
@@ -198,31 +198,27 @@ struct LinkedBuffer bufferLinking(FILE *input) {
     return linkedBuff;
 }
 
-struct TextParameters readText(FILE *input, char *buffer) {
+struct TextParameters readText(FILE *input, char *buffer, int len) {
     if (input == NULL) {
         fprintf(stderr, "readText: Cannot open file exception");
         exit(-1);
     }
 
-    char t = 0;
+    fread(buffer, sizeof(char), len, input);
+
     int numStr = 0;
     int numSym = 0;
 
-    while ((t = fgetc(input)) != EOF) {
-        if (t == '\n') {
+    while (buffer[numSym] != '\0') {
+        if (buffer[numSym] == '\n') {
             buffer[numSym++] = '\0';
             numStr++;
-        } else {
-            buffer[numSym++] = t;
         }
+        numSym++;
     }
 
-    fseek(input, SEEK_END, 1);
-
-    if ((t = fgetc(input)) != '\n')
+    if (buffer[numStr] != '\n')
         numStr++;
-
-    fseek(input, SEEK_SET, 0);
 
     struct TextParameters txtPar = {numSym, numStr};
 
