@@ -1,0 +1,300 @@
+#include <stdio.h>
+#include <locale.h>
+#include <malloc.h>
+#include <assert.h>
+#include <mem.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+
+//! @File main.c
+//! Text sorting program
+//! @mainpage
+//! - main.c
+
+/*!
+ * @brief introducing program name, author, input and output file
+ * @param output write introducing here
+ * @param programName program name
+ * @param inputFile input file
+ * @param outputFile output file
+ * @param author author
+ */
+
+void introduction(FILE *output, char *programName, char *inputFile, char *outputFile, char *author);
+
+/*!
+ * @brief linking the beginnings of strings in buffer to str_ptr
+ * @param buffer the source buffer of chars
+ * @param str_ptr array of char pointers
+ * @param numSym number of elements in buffer
+ */
+
+void linking(char buffer[], char *str_ptr[], int numSym);
+
+/*!
+ * @brief Sorting array of char pointers (strings), using functions int part(char *lines[], int left, int right) and void swap(char **a, char **b)
+ * @param lines array of char pointers
+ * @param left left edge of sorting
+ * @param right right edge of sorting
+ */
+
+void stringArrSort(char *lines[], int left, int right);
+
+/*!
+ * @brief Partitition for stringArrSort
+ * @param lines array of char pointers
+ * @param left left edge of sorting
+ * @param right edge of sorting
+ * @return separating index (left elements are smaller and right elements are bigger than the element with this index)
+ */
+
+int part(char *lines[], int left, int right);
+
+/*!
+ * @brief swap two char ** elements
+ * @param a first char ** element
+ * @param b second char ** element
+ */
+
+void swap(char **a, char **b);
+
+/*!
+ * @brief Creates buffer and linked buffer
+ * @param input input file
+ * @return structure LinkedBuffer, includes string array (char *buffer), array of char pointers (char **str_ptr) to strings from buffer,
+ * number of symbols (numsym) and strings (numstr) in buffer
+ */
+
+struct LinkedBuffer bufferLinking(FILE *input);
+
+/*!
+ * @brief read input file from input to char *buffer
+ * @param input input file
+ * @param buffer char *buffer
+ * @return structure TextParameters, includes number of symbols (numSym), number of strings (numStr)
+ */
+
+struct TextParameters readText(FILE *input, char *buffer);
+
+/*!
+ * @brief deleting LinkedBuffer structure
+ * @param linkedBuff - free allocated memory in LinkedBuffer structure
+ */
+
+void deleteText(struct LinkedBuffer linkedBuff);
+
+/*!
+ * @brief print in output file array of strings
+ * @param output output file
+ * @param str_ptr array of char pointers
+ * @param numStr number of elements in str_ptr (number of strings)
+ */
+
+void writeText(FILE *output, char *str_ptr[], int numStr);
+
+/*!
+ * @brief structure includes string array (char *buffer),
+ * array of char pointers (char **str_ptr) to strings from buffer,
+ * number of symbols (numsym) and strings (numstr) in buffer
+ */
+
+struct LinkedBuffer {
+    char *buffer;
+    char **str_ptr;
+    int numSym;
+    int numStr;
+};
+
+/*!
+ * @brief structure includes number of symbols (numSym), number of strings (numStr)
+ */
+
+struct TextParameters {
+    int numSym;
+    int numStr;
+};
+
+int main() {
+    setlocale(LC_ALL, "Rus");
+
+    FILE *input = NULL;
+
+    if ((input = fopen("input.txt", "r")) == NULL) {
+        fprintf(stderr, "Cannot open file \"input.txt\" exception");
+
+        exit(-1);
+    }
+
+    FILE *output = fopen("output.txt", "w");
+
+    assert(output != NULL);
+
+    introduction(output, "encyclopedia", "input.txt", "output.txt", "Nazmiev Airat");
+
+    struct LinkedBuffer linkedBuff = bufferLinking(input);
+
+    fclose(input);
+
+    stringArrSort(linkedBuff.str_ptr, 0, linkedBuff.numStr - 1);
+
+    writeText(output, linkedBuff.str_ptr, linkedBuff.numStr);
+
+    fclose(output);
+
+    deleteText(linkedBuff);
+}
+
+struct LinkedBuffer bufferLinking(FILE *input) {
+    if (input == NULL) {
+        fprintf(stderr, "bufferLinking: Cannot open file");
+
+        exit(-1);
+    }
+
+    struct stat fileStat = {0, 0, 0, 0};
+    fstat(fileno(input), &fileStat);
+
+    char *buffer = (char *) calloc(fileStat.st_size, sizeof(*buffer));
+
+    struct TextParameters txtPar = readText(input, buffer);
+
+    char **str_ptr = (char **) calloc(txtPar.numStr, sizeof(*str_ptr));
+    struct LinkedBuffer linkedBuff = {buffer, str_ptr, txtPar.numSym, txtPar.numStr};
+    linkedBuff.buffer[txtPar.numSym] = '\0';
+
+    linking(linkedBuff.buffer, linkedBuff.str_ptr, linkedBuff.numSym);
+
+    return linkedBuff;
+}
+
+struct TextParameters readText(FILE *input, char *buffer) {
+    if (input == NULL) {
+        fprintf(stderr, "readText: Cannot open file");
+
+        exit(-1);
+    }
+
+    char t = 0;
+    int numStr = 0;
+    int numSym = 0;
+
+    while ((t = fgetc(input)) != EOF) {
+        if (t == '\n') {
+            buffer[numSym++] = '\0';
+            numStr++;
+        } else {
+            buffer[numSym++] = t;
+        }
+    }
+
+    fseek(input, SEEK_END, 1);
+
+    if ((t = fgetc(input)) != '\n')
+        numStr++;
+
+    fseek(input, SEEK_SET, 0);
+
+    struct TextParameters txtPar = {numSym, numStr};
+
+    return txtPar;
+}
+
+void linking(char buffer[], char *str_ptr[], int numSym) {
+    assert(numSym >= 0);
+
+    int num = 0;
+    str_ptr[num++] = &buffer[0];
+
+    for (int i = 0; i < numSym - 1; i++) {
+        if (buffer[i] == '\0') {
+            str_ptr[num++] = &buffer[i + 1];
+        }
+    }
+}
+
+void stringArrSort(char *lines[], int left, int right) {
+    assert(left <= right);
+    assert((left >= 0) && (right >= 0));
+
+    if (left < right) {
+        int m = part(lines, left, right);
+        stringArrSort(lines, left, m);
+        stringArrSort(lines, m + 1, right);
+    }
+}
+
+int part(char *lines[], int left, int right) {
+    assert(left < right);
+    assert((left >= 0) && (right > 0));
+
+    char *key = lines[left + (right - left) / 2];
+    int i = left;
+    int j = right;
+
+    while (i <= j) {
+        while (strcmp(lines[i], key) < 0)
+            i++;
+        while (strcmp(lines[j], key) > 0)
+            j--;
+        if (i >= j)
+            break;
+        swap(&lines[i++], &lines[j--]);
+    }
+
+    return j;
+}
+
+void swap(char **a, char **b) {
+    assert(a != NULL);
+    assert(b != NULL);
+
+    char *tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+void writeText(FILE *output, char *str_ptr[], int numStr) {
+    assert(output == NULL);
+    assert(numStr >= 0);
+
+    char tmp = 0;
+
+    for (int i = 0; i < numStr; i++) {
+        int x = 0;
+
+        while ((tmp = *(str_ptr[i] + x)) != '\0') {
+            fputc(tmp, output);
+            x++;
+        }
+
+        fputc('\n', output);
+    }
+}
+
+void deleteText(struct LinkedBuffer linkedBuff) {
+    if ((linkedBuff.buffer == NULL) || (linkedBuff.str_ptr == NULL)) {
+        fprintf(stderr, "deleteText: Null pointer exception");
+
+        exit(-1);
+    }
+
+    free(linkedBuff.buffer);
+    free(linkedBuff.str_ptr);
+}
+
+void introduction(FILE *output, char *programName, char *inputFile, char *outputFile, char *author) {
+    if (output == NULL) {
+        fprintf(stderr, "introduction: Cannot open file");
+
+        exit(-1);
+    }
+
+    if ((author == NULL) || (programName == NULL) || (outputFile == NULL) || (inputFile == NULL)) {
+        fprintf(stderr, "introduction: null string pointer");
+
+        exit(-1);
+    }
+
+    fprintf(output, "Program %s, input from \"%s\", output to \"%s\"\n", programName, inputFile, outputFile);
+    fprintf(output, "Program by %s \n\n", author);
+}
