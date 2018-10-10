@@ -4,20 +4,25 @@
 int main() {
     struct Stack s = {};
     StackCtor(&s);
-    StackPush(&s, 32);
-    StackPush(&s, 42);
-    StackPush(&s, 432);
-    printf("%lf\n", StackPop(&s));
-    printf("%lf\n", StackPop(&s));
-    StackClear(&s);
-    StackPush(&s, 3432);
-    StackPush(&s, 4254);
-    StackPush(&s, 43232);
-    printf("%d\n", StackSize(&s));
-    StackPush(&s, 353452);
-    StackPush(&s, 4234232);
-    StackPush(&s, 123432);
-    printf("%lf\n", StackPop(&s));
-    printf("%lf\n", StackPeek(&s));
-    StackDtor(&s);
+    for (int i = 0; i < 15; i++) {
+        StackPush(&s, i);
+    }
+    StackDump(stdout, &s);
+
+    FILE *output = fopen("unittests.txt", "w");
+    for (int i = 14; i >= 0; i--) {
+        data_t tmp = StackPop(&s);
+        printf("%lf\n", tmp);
+        UNITTEST(tmp, (data_t) i , output);
+    }
+
+    for (int i = 0; i < 15; i++) {
+        StackPush(&s, i);
+    }
+
+    data_t *arr = StackToArray(&s);
+    for (int i = 14; i >= 0; i--) {
+        printf("%lf\n", arr[i]);
+        UNITTEST(arr[i], (data_t) i , output);
+    }
 }
