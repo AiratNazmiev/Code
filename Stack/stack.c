@@ -7,24 +7,30 @@
 const unsigned int STACK_MAX_SIZE = UINT_MAX;
 const unsigned int STACK_EXPANSION_REDUCTION_RATIO = 2;//if size * EXPANSION_REDUCTION_RATIO <= capacity then realloc memory and  if size = capacity then capacity * EXPANSION_REDUCTION_RATIO
 const unsigned int STACK_CTOR_SIZE = 1;
-const unsigned int STACK_POISON = 0;
+const unsigned int STACK_POISON = UINT_MAX;
 const unsigned int STACK_EMRTY = 1;
 const unsigned int STACK_NOT_EMPTY = 0;
-const data_t ERROR_VALUE = 0;
+const data_t ERROR_VALUE = DBL_MAX;
 
 enum errorNum {
-    NEGATIVE_SIZE = 1, NEGATIVE_CAPACITY, STACK_OVERFLOW, NULL_STACK_POINTER, NULL_DATA_POINTER
+    OK, NEGATIVE_SIZE, NEGATIVE_CAPACITY, STACK_OVERFLOW, NULL_STACK_POINTER, NULL_DATA_POINTER, MEM_ALLOC_ERR
 };
 
 void StackCtor(struct Stack *s) {
     s->data = (data_t *) calloc(STACK_CTOR_SIZE, sizeof(*(s->data)));
+
+    if (s->data == NULL) {
+        fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
+                __LINE__);
+    }
+
     s->size = 0;
     s->capacity = STACK_CTOR_SIZE;
 }
 
-unsigned int StackOK(const struct Stack *s) {
+enum errorNum StackOK(const struct Stack *s) {
     if (s == NULL) {
-        return NULL_DATA_POINTER;
+        return NULL_STACK_POINTER;
     }
 
     if (s->data == NULL) {
@@ -43,7 +49,7 @@ unsigned int StackOK(const struct Stack *s) {
         return STACK_OVERFLOW;
     }
 
-    return 0;
+    return OK;
 }
 
 void StackPush(struct Stack *s, data_t value) {
@@ -53,7 +59,8 @@ void StackPush(struct Stack *s, data_t value) {
         data_t *tmp = realloc(s->data, s->capacity * STACK_EXPANSION_REDUCTION_RATIO * sizeof(data_t));
 
         if (tmp == NULL) {
-            fprintf(stderr, "Function %s: memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
+            fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
+                    __LINE__);
         } else {
             s->data = tmp;
             s->capacity = s->capacity * STACK_EXPANSION_REDUCTION_RATIO;
@@ -67,8 +74,8 @@ void StackPush(struct Stack *s, data_t value) {
 data_t StackPop(struct Stack *s) {
     ASSERT(!StackOK(s));
 
-    if (s->size <= 0) {
-        fprintf(stderr, "Function %s: Cannot pop element in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
+    if (s->size < 1) {
+        fprintf(stderr, "Function %s: Cannot pop element (empty stack) in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
         return ERROR_VALUE;
     }
 
@@ -76,7 +83,8 @@ data_t StackPop(struct Stack *s) {
         data_t *tmp = realloc(s->data, s->capacity / STACK_EXPANSION_REDUCTION_RATIO * sizeof(data_t));
 
         if (tmp == NULL) {
-            fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
+            fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
+                    __LINE__);
 
             return ERROR_VALUE;
         } else {
@@ -97,7 +105,7 @@ data_t StackPeek(const struct Stack *s) {
     if (s->size > 0) {
         return s->data[s->size - 1];
     } else {
-        fprintf(stderr, "Function %s: Cannot peek element in File %s, line %d\n", __FUNCTION__, __FILE__,
+        fprintf(stderr, "Function %s: Cannot peek element (empty stack) in File %s, line %d\n", __FUNCTION__, __FILE__,
                 __LINE__);
         return ERROR_VALUE;
     }
@@ -106,11 +114,7 @@ data_t StackPeek(const struct Stack *s) {
 unsigned int StackIsEmpty(const struct Stack *s) {
     ASSERT(!StackOK(s));
 
-    if (s->size == 0) {
-        return STACK_EMRTY;
-    } else {
-        return STACK_NOT_EMPTY;
-    }
+    return (s->size > 0) ? STACK_EMRTY : STACK_NOT_EMPTY;
 }
 
 unsigned int StackSize(const struct Stack *s) {
@@ -124,6 +128,12 @@ void StackClear(struct Stack *s) {
 
     memset(s->data, STACK_POISON, sizeof(*(s->data)) * s->size);
     s->data = realloc(s->data, STACK_CTOR_SIZE);
+
+    if (s->data == NULL) {
+        fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
+                __LINE__);
+    }
+
     s->capacity = STACK_CTOR_SIZE;
     s->size = 0;
 }
@@ -139,7 +149,7 @@ void StackDtor(struct Stack *s) {
     s->capacity = 0;
 }
 
-data_t *StackToArray(const struct Stack *s, data_t *arr) {
+data_t *StackToArray(const struct Stack *s) {
     ASSERT(!StackOK(s));
 
     if (s == NULL) {
@@ -147,12 +157,24 @@ data_t *StackToArray(const struct Stack *s, data_t *arr) {
         return NULL;
     }
 
+    data_t *arr = (data_t *) calloc(s->size, sizeof(data_t));
+
     if (arr == NULL) {
-        fprintf(stderr, "Function %s: Array NULL pointer in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
+        fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
         return NULL;
     }
 
-    arr = (data_t *) calloc(s->size, sizeof(data_t));
     memcpy(arr, s->data, sizeof(data_t) * s->size);
     return arr;
+}
+
+void StackDump(FILE *f, struct Stack *s) {
+    fprintf(f, "Stack: [%X]\n", s);
+    fprintf(f, "capacity = %u\n", s->capacity);
+    fprintf(f, "size = %u\n", s->size);
+    fprintf(f, "data[%u] :[%X]\n", s->size, &(s->data));
+
+    for (int i = 0; i < s->size; i++) {
+        fprintf(f, "data[%u] = %lf\n", i, s->data[i]);
+    }
 }
