@@ -2,6 +2,30 @@
 
 #ifndef STACK_H
 #define STACK_H
+
+#define TEST
+#ifdef TEST
+
+#define ASSERT(check){\
+    if ((!check)){\
+    fprintf(stderr, "Function %s: %s in File %s, line %d\n",__FUNCTION__ , #check, __FILE__, __LINE__);\
+    }\
+}\
+
+#define UNITTEST(what, ref, file){\
+    if ((what) != (ref)){\
+        fprintf(file, "FAILED: %s = %lf, expected %lf\n", #what, (what), (ref));\
+   } else {\
+       fprintf(file, "PASSED\n");\
+   }\
+}
+#else
+
+#define ASSERT
+#define UNITTEST
+
+#endif //UNITTEST
+
 typedef double data_t;
 
 /*!
@@ -72,13 +96,13 @@ void StackDtor(struct Stack *s);
  */
 void StackCtor(struct Stack *s);
 
-/*!///////////////////////////////////////////////////////////////////
+/*!
  * @brief Checks the stack's conditions
  * @param s stack pointer
  * @return the code of error (errorNum enum)
  */
 
-unsigned int StackOK(const struct Stack *s);
+enum errorNum StackOK(const struct Stack *s);
 
 /*!
  * @brief Copies the elements from stack to array
@@ -87,30 +111,14 @@ unsigned int StackOK(const struct Stack *s);
  * @return rewritten array
  */
 
-data_t *StackToArray(const struct Stack *s, data_t *arr);
+data_t *StackToArray(const struct Stack *s);
+
+/*!
+ * @brief Information about stack
+ * @param f output file
+ * @param s stack pointer
+ */
+
+void StackDump(FILE *f, struct Stack *s);
 
 #endif //STACK_H
-
-//#define TEST
-
-#ifdef TEST
-#define ASSERT(check){\
-    if ((!check)){\
-    fprintf(stderr, "Function %s: %s in File %s, line %d\n",__FUNCTION__ , #check, __FILE__, __LINE__);\
-    }\
-}\
-
-#define UNITTEST(what, ref){\
-    if ((what) != (ref)){\
-        fprintf(stderr, "FAILED: %s = %d, expected %d\n", #what, (what), (ref));\
-   } else {\
-       fprintf(stderr, "PASSED\n");\
-   }\
-//FILE* unittests = fopen("unittests.txt", "r");\
-
-#else
-
-#define ASSERT
-#define UNITTEST
-
-#endif //UNITTEST
