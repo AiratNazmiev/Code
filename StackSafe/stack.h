@@ -6,22 +6,6 @@
 #define TEST
 #ifdef TEST
 
-#define ASSERT(check){\
-    if ((check)){\
-    fprintf(stderr, "Function %s: %s in File %s, line %d\n",__FUNCTION__ , #check, __FILE__, __LINE__);\
-    }\
-    switch (check){\
-        case OK: break;\
-        case NULL_STACK_POINTER: fprintf(stderr, "STACK: NULL_STACK_POINTER\n"); break;\
-        case NULL_DATA_POINTER: fprintf(stderr, "STACK: NULL_DATA_POINTER\n"); break;\
-        case NEGATIVE_SIZE: fprintf(stderr, "STACK: NEGATIVE_SIZE\n"); break;\
-        case NEGATIVE_CAPACITY: fprintf(stderr, "STACK: NEGATIVE_CAPACITY\n"); break;\
-        case STACK_OVERFLOW: fprintf(stderr, "STACK: STACK_OVERFLOW\n"); break;\
-        case FORBIDDEN_REPLACEMENT: fprintf(stderr, "STACK: FORBIDDEN_REPLACEMENT\n"); break;\
-        default: fprintf(stderr, "STACK: UNKNOWN ERROR\n");\
-    }\
-}\
-
 #define UNITTEST(what, ref, file){\
     if ((what) != (ref)){\
         fprintf(file, "FAILED: %s = %lf, expected %lf\n", #what, (what), (ref));\
