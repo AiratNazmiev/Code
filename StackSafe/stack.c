@@ -1,28 +1,47 @@
 #include <stdio.h>
 #include <malloc.h>
-#include <mem.h>
 #include <float.h>
 #include <assert.h>
+#include <mem.h>
 #include "stack.h"
 
 const unsigned int STACK_MAX_SIZE = UINT_MAX;
-const unsigned int STACK_EXPANSION_REDUCTION_RATIO = 2;//if size * EXPANSION_REDUCTION_RATIO <= capacity then realloc memory and  if size = capacity then capacity * EXPANSION_REDUCTION_RATIO
+const unsigned int STACK_EXP_REDUCT = 2;//if size * EXPANSION_REDUCTION_RATIO <= capacity then realloc memory and  if size = capacity then capacity * EXPANSION_REDUCTION_RATIO
 const unsigned int STACK_CTOR_SIZE = 1;
 const unsigned int STACK_POISON = UINT_MAX;
 const unsigned int STACK_EMPTY = 1;
 const unsigned int STACK_NOT_EMPTY = 0;
 const data_t ERROR_VALUE = DBL_MAX;
 const data_t STACK_DATA_POISON = DBL_MAX;
-const unsigned int HASH_A = 198263;
-const unsigned int HASH_MOD = 123213;
+const unsigned int HASH_C = 1872;
+const unsigned int HASH_MOD = 123434243;
+const data_t LEFT_CANARY = DBL_MAX - 1;
+const data_t RIGHT_CANARY = DBL_MAX - 1;
 
 enum errorNum {
-    OK, NEGATIVE_SIZE, NEGATIVE_CAPACITY, STACK_OVERFLOW, NULL_STACK_POINTER, NULL_DATA_POINTER, FORBIDDEN_REPLACEMENT
+    OK,
+    NEGATIVE_SIZE,
+    NEGATIVE_CAPACITY,
+    STACK_OVERFLOW,
+    NULL_STACK_POINTER,
+    NULL_DATA_POINTER,
+    LEFT_BOARDER_DAMAGED,
+    RIGHT_BOARDER_DAMAGED,
+    FORBIDDEN_REPLACEMENT
 };
 
-static void StackPoison(struct Stack *s);
+inline static void StackPoison(struct Stack *s);
 
-static unsigned int hashCalc(const struct Stack *s);
+inline static unsigned int hashCalc(const struct Stack *s);
+
+
+/*
+ * #include <errno.h>
+ * perror("msg"); "msg: ... "
+ * #define DUMP_ERR(msg) do{ perror(msg); fprintf(stderr, "At %s %s %s...);
+ *
+ *
+*/
 
 void StackCtor(struct Stack *s) {
     assert(s);
@@ -30,11 +49,10 @@ void StackCtor(struct Stack *s) {
     s->data = (data_t *) calloc(STACK_CTOR_SIZE, sizeof(*(s->data)));
 
     if (s->data == NULL) {
-        fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
-                __LINE__);
+        fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
     }
 
-    s->size = 0;
+    s->size = STACK_CTOR_SIZE;
     s->capacity = STACK_CTOR_SIZE;
     s->hash = 0;
 }
@@ -60,7 +78,15 @@ enum errorNum StackOK(const struct Stack *s) {
         return STACK_OVERFLOW;
     }
 
-    if (s->hash != hashCalc(s)){
+//    if (s->data[0] != LEFT_CANARY) {
+//        return LEFT_BOARDER_DAMAGED;
+//    }
+//
+//    if (s->data[s->size - 1] != RIGHT_CANARY) {
+//        return RIGHT_BOARDER_DAMAGED;
+//    }
+
+    if (s->hash != hashCalc(s)) {
         return FORBIDDEN_REPLACEMENT;
     }
 
@@ -72,26 +98,26 @@ void StackPush(struct Stack *s, data_t value) {
 
     if (s->capacity == s->size) {
 
-        if (s->capacity * STACK_EXPANSION_REDUCTION_RATIO >= STACK_MAX_SIZE) {
+        if (s->capacity * STACK_EXP_REDUCT >= STACK_MAX_SIZE) {
             fprintf(stderr, "Function %s: Stack max size error %s, line %d\n", __FUNCTION__, __FILE__,
                     __LINE__);
         }
 
-        data_t *tmp = realloc(s->data, s->capacity * STACK_EXPANSION_REDUCTION_RATIO * sizeof(data_t));
+        data_t *tmp = realloc(s->data, s->capacity * STACK_EXP_REDUCT * sizeof(data_t));
 
         if (tmp == NULL) {
             fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
                     __LINE__);
         } else {
             s->data = tmp;
-            s->capacity = s->capacity * STACK_EXPANSION_REDUCTION_RATIO;
+            s->capacity = s->capacity * STACK_EXP_REDUCT;
         }
     }
 
-    s->data[s->size] = value;
-    s->size++;
-    s->hash = hashCalc(s);
+    s->data[s->size++] = value;
+    s->hash = (s->hash + ((unsigned int) value * HASH_C)) % HASH_MOD;
 }
+
 
 data_t StackPop(struct Stack *s) {
     ASSERT(StackOK(s));
@@ -102,8 +128,8 @@ data_t StackPop(struct Stack *s) {
         return ERROR_VALUE;
     }
 
-    if (s->size * STACK_EXPANSION_REDUCTION_RATIO <= s->capacity) {
-        data_t *tmp = realloc(s->data, s->capacity / STACK_EXPANSION_REDUCTION_RATIO * sizeof(data_t));
+    if (s->size * STACK_EXP_REDUCT <= s->capacity) {
+        data_t *tmp = realloc(s->data, s->capacity / STACK_EXP_REDUCT * sizeof(data_t));
         if (tmp == NULL) {
             fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__,
                     __LINE__);
@@ -111,7 +137,7 @@ data_t StackPop(struct Stack *s) {
             return ERROR_VALUE;
         } else {
             s->data = tmp;
-            s->capacity = s->capacity / STACK_EXPANSION_REDUCTION_RATIO;
+            s->capacity = s->capacity / STACK_EXP_REDUCT;
         }
     }
 
@@ -161,6 +187,7 @@ void StackClear(struct Stack *s) {
 
     s->capacity = STACK_CTOR_SIZE;
     s->size = 0;
+    s->hash = 0;
 }
 
 void StackDtor(struct Stack *s) {
@@ -172,6 +199,7 @@ void StackDtor(struct Stack *s) {
 
     s->size = STACK_POISON;
     s->capacity = STACK_POISON;
+    s->hash = 0;
 }
 
 data_t *StackToArray(const struct Stack *s) {
@@ -199,11 +227,11 @@ void StackArrayDtor(data_t *arr) {
 }
 
 void StackDump(FILE *f, struct Stack *s) {
-    fprintf(f, "StackDump{\n");
+    fprintf(f, "StackDump\n{\n");
     fprintf(f, "Stack: [0x%X]\n", s);
     fprintf(f, "capacity = %u\n", s->capacity);
     fprintf(f, "size = %u\n", s->size);
-    fprintf(f, "array data[%u] :[0x%X]\n", s->size, &(s->data));
+    fprintf(f, "array data[%u] :[0x%X]\n", s->size, &(s->data[0]));
 
     for (int i = 0; i < s->size; i++) {
         fprintf(f, "[in] data[%u] = %lf\n", i, s->data[i]);
@@ -216,17 +244,17 @@ void StackDump(FILE *f, struct Stack *s) {
     fprintf(f, "}");
 }
 
-static void StackPoison(struct Stack *s) {
+inline static void StackPoison(struct Stack *s) {
     for (int i = 0; i < s->size; i++) {
         s->data[i] = STACK_DATA_POISON;
     }
 }
 
-static unsigned int hashCalc(const struct Stack *s) {
+inline static unsigned int hashCalc(const struct Stack *s) {
     unsigned int sum = 0;
 
     for (int i = 0; i < s->size; i++) {
-        sum = (sum + (((unsigned int) s->data[i]) * HASH_A)) % HASH_MOD;
+        sum = (sum + (((unsigned int) s->data[i]) * HASH_C)) % HASH_MOD;
     }
 
     return sum;
