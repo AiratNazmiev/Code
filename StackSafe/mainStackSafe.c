@@ -1,27 +1,40 @@
 #include <stdio.h>
-#include <malloc.h>
+#include <float.h>
 #include "stack.h"
 
 int main() {
     struct Stack s = {};
     StackCtor(&s);
-    for (int i = 0; i < 15; i++) {
+
+    FILE *output = fopen("unittests.txt", "w");
+
+    StackPush(&s, 4535);
+    StackPush(&s, 4535);
+    StackPush(&s, 4535);
+
+    UNITTEST((double) StackSize(&s), 3.0, output);
+
+    StackClear(&s);
+
+    UNITTEST((double) StackSize(&s), 0.0, output);
+
+    for (int i = 0; i < 6; i++) {
         StackPush(&s, i);
     }
 
-    //StackDump(stdout, &s);
 
-    //s.data[4]=4324;
+//    s.data[5] = 4324;//forbidden replacement error
 
-    FILE *output = fopen("unittests.txt", "w");
-    for (int i = 14; i >= 0; i--) {
+    for (int i = 5; i >= 0; i--) {
         data_t tmp = StackPop(&s);
         UNITTEST(tmp, (data_t) i, output);
     }
 
+
     for (int i = 0; i < 15; i++) {
         StackPush(&s, i);
     }
+
 
     UNITTEST(StackPeek(&s), 42.0, output); //wrong test
 
@@ -52,4 +65,5 @@ int main() {
 
     StackDump(output, &s);
     StackDtor(&s);
+    fclose(output);
 }
