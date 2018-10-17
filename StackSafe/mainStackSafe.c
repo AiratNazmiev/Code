@@ -23,7 +23,7 @@ int main() {
     }
 
 
-//    s.data[5] = 4324;//forbidden replacement error
+    //s.data[5] = 4324;//forbidden replacement error
 
     for (int i = 5; i >= 0; i--) {
         data_t tmp = StackPop(&s);
@@ -37,6 +37,7 @@ int main() {
 
 
     UNITTEST(StackPeek(&s), 42.0, output); //wrong test
+    StackDump(output, &s);
 
     data_t *arr = StackToArray(&s);
     for (int i = 14; i >= 0; i--) {
