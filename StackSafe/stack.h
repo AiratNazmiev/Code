@@ -1,5 +1,7 @@
 #include <limits.h>
 
+#define STACKSAFE
+
 #ifndef STACK_H
 #define STACK_H
 
@@ -22,8 +24,11 @@
 
 typedef double data_t;
 
+#ifdef STACKSAFE
+
 /*!
- * @brief Stack structure, has data_t array, uint size and uint capacity
+ * @brief Stack structure, has data_t array, uint size and uint capacity with hash sum
+ *
  */
 
 struct Stack {
@@ -32,6 +37,20 @@ struct Stack {
     unsigned int capacity;
     unsigned int hash;
 };
+
+#else
+
+/*!
+ * @brief Stack structure, has data_t array, uint size and uint capacity with hash sum
+ */
+
+struct Stack {
+    data_t *data;
+    unsigned int size;
+    unsigned int capacity;
+};
+
+#endif //STACKSAFE
 
 /*!
  * @brief Push element to stack, reallocates (expand) memory if it is needed
