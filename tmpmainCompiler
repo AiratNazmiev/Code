@@ -1,0 +1,112 @@
+#include <stdio.h>
+#include <sys/stat.h>
+#include <malloc.h>
+#include "stack/stack.h"
+#include "asm.h"
+
+const unsigned int LabelsNum = 16;
+const unsigned int RAMLen = 16;
+const unsigned int RegisterNum = 4;
+
+struct CPU {
+    struct Stack *stack;
+    unsigned int pc;
+    unsigned int codeSize;
+    char *byte_code;
+    //unsigned int *labels;
+    data_t *registers;
+    data_t *ram;
+};
+
+char *readCode(char *filename, unsigned int *size);
+
+void CPUCtor(struct CPU *CPU);
+
+void CPUDtor(struct CPU *CPU);
+
+void pushConst(struct CPU *CPU);
+
+void pushRegister(struct CPU *CPU);
+
+void add(struct CPU *CPU);
+
+int main() {
+    struct CPU CPU = {};
+    CPUCtor(&CPU);
+
+    while (CPU.pc < CPU.codeSize) {
+        switch (CPU.byte_code[CPU.pc]) {
+            case ASM_PUSH_CONST:
+                pushConst(&CPU);
+                break;
+            case ASM_PUSH_REG:
+                pushRegister(&CPU);
+                break;
+            case ASM_ADD:
+                add(&CPU);
+                break;
+        }
+    }
+
+    CPUDtor(&CPU);
+}
+
+void CPUCtor(struct CPU *CPU) {
+    static struct Stack stack = {};
+    StackCtor(&stack);
+    CPU->stack = &stack;
+    CPU->pc = 0;
+    unsigned int codeSize = 0;
+    CPU->byte_code = readCode("D:\\Code\\CLionProjects\\asm\\cmake-build-debug\\bytecode.txt", &codeSize);
+    CPU->codeSize = codeSize;
+    //CPU->labels = calloc(LabelsNum, sizeof(*(CPU->labels)));//////!!!!!
+    CPU->registers = calloc(RegisterNum, sizeof(*(CPU->registers)));
+    CPU->ram = calloc(RAMLen, sizeof(*(CPU->ram)));
+}
+
+void CPUDtor(struct CPU *CPU) {
+    StackDtor(CPU->stack);
+    CPU->pc = 0;
+    CPU->codeSize = 0;
+    free(CPU->byte_code);
+    //free(CPU->labels);
+    free(CPU->registers);
+    free(CPU->ram);
+    CPU->byte_code = NULL;
+    //CPU->labels = NULL;
+    CPU->registers = NULL;
+    CPU->ram = NULL;
+}
+
+char *readCode(char *filename, unsigned int *size) {
+    FILE *input = fopen(filename, "rb");
+
+    struct stat fileStat = {};
+    fstat(fileno(input), &fileStat);
+    *size = fileStat.st_size;
+    char *buffer = (char *) calloc(size, sizeof(*buffer));
+    fread(buffer, sizeof(*buffer), size, input);
+
+    fclose(input);
+
+    return buffer;
+}
+
+void pushConst(struct CPU *CPU) {
+    CPU->pc++;
+    StackPush(CPU->stack, *(data_t *) (CPU->byte_code + CPU->pc));
+    CPU->pc += sizeof(data_t);
+}
+
+void pushRegister(struct CPU *CPU) {
+    CPU->pc++;
+    StackPush(CPU->stack, CPU->registers[CPU->byte_code[CPU->pc++]]);
+}
+
+void add(struct CPU *CPU) {
+    CPU->pc++;
+    data_t a = StackPop(CPU->stack);
+    data_t b = StackPop(CPU->stack);
+    StackPush(CPU->stack, a + b);
+    CPU->pc += sizeof(data_t);
+}
