@@ -230,11 +230,9 @@ void in(struct CPU *CPU) {
     system("pause");
     printf("Enter input number\n");
     data_t input = 0;
-    if (scanf("%d", &input) == 0) {
-        while (scanf("%d", &input) == 0) {
-            printf("Input error: no input data\n");
-            system("pause");
-        }
+    while (scanf("%d", &input) == 0) {
+        printf("Input error: no input data\n");
+        system("pause");
     }
     StackPush(CPU->stack, input);
     CPU->pc++;
