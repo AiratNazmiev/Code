@@ -1,0 +1,50 @@
+in ;start
+push 0
+
+jb :1
+pop
+push 1
+pop rc ;set counter value to 1
+push 1 ;set 1st num
+pop ra
+call :2 ;recursion
+:1
+
+pop
+push -1
+:7 ;break
+out
+end
+
+:2
+call :8 ;next num
+call :3 ;inc counter
+call :5 ;check if reached num
+ret :2
+
+:3
+push rc
+push 1
+add
+pop rc
+ret :3
+
+:5
+pop ra
+push rc
+je :6
+pop rc
+push ra
+jmp :7 ;break of cycle
+:6
+pop rc
+call :2
+ret :5
+
+:8
+push ra
+push rc
+push 1
+add
+mul
+ret :8

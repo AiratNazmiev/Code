@@ -1,0 +1,88 @@
+;solve ax^2+bc+c=0
+in ;a
+in ;b
+in ;c
+pop rc
+pop rb
+pop ra
+push ra
+push 0
+
+je :5 ;if a==0
+pop
+pop
+push rb
+push 0
+
+je :6 ;if b==0
+push 999999990
+out
+end ;exit
+:6
+
+pop
+push rc
+push -1
+mul
+div
+out
+end ;exit
+:5
+
+pop
+pop
+call :1 ;discriminant
+call :2 ;1st root
+call :3 ;2nd root
+end ;end
+
+:1
+push 4
+push ra
+push rc
+mul
+mul
+push rb
+push rb
+mul
+sub
+push 0
+
+ja :4
+push 999999991
+out
+end ;exit
+:4
+
+pop
+sqrt
+pop rd
+ret :1
+
+:2
+push 2
+push ra
+mul
+push rd
+push -1
+push rb
+mul
+sub
+div
+out
+pop
+ret :2
+
+:3
+push 2
+push ra
+mul
+push rd
+push -1
+push rb
+mul
+add
+div
+out
+pop
+ret :3
