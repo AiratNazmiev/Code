@@ -15,8 +15,15 @@ struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *st
 
 static void asmTranslationError(unsigned int num);
 
-int main() {
-    FILE *input = fopen("code.txt", "r");
+int main(int argc, char *argv[]) {
+    FILE *input = 0;
+
+    if (argc == 3) {
+        input = fopen(argv[1], "r");
+    } else {
+        asmTranslationError(ASM_OPEN_FILE_ERROR);
+        return ASM_OPEN_FILE_ERROR;
+    }
 
     struct LinkedBuffer asm_code = bufferLinking(input);
 
@@ -124,7 +131,7 @@ int main() {
                 }
             }
 
-            if (sscanf(asm_code.str_ptr[i], "pop [%d]", &arg1) == 1) { // добавить в стек элемент из RAM[arg1]
+            if (sscanf(asm_code.str_ptr[i], "pop [%d]", &arg1) == 1) {
                 byte_code[pc++] = ASM_POP_RAM;
                 *(int *) (byte_code + pc) = arg1;
                 pc += sizeof(int);
@@ -202,7 +209,7 @@ int main() {
 
         if (sscanf(asm_code.str_ptr[i], "ret :%d", &arg1) == 1) {//Do call analysis
             byte_code[pc++] = ASM_RET;
-            *(int *) (byte_code + pc) = labels.callLab[arg1];//!!!!!!!!!!!!!!!!!!!!!
+            *(int *) (byte_code + pc) = labels.callLab[arg1];
             pc += sizeof(int);
             continue;
         }
@@ -251,8 +258,15 @@ int main() {
 
         if (!strcmp(str_instr, "end")) {
             byte_code[pc++] = ASM_END;
-            continue; ////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            continue;
         }
+
+#ifdef CPU_EXTRA_COMMANDS
+        if (!strcmp(str_instr, "sqrt")) {
+            byte_code[pc++] = ASM_INT_SQRT;
+            continue;
+        }
+#endif
 
         if (!strcmp(asm_code.str_ptr[i], "")) {
             continue;
@@ -261,7 +275,7 @@ int main() {
         }
     }
 
-    FILE *output = fopen("bytecode.txt", "wb");
+    FILE *output = fopen(argv[2], "wb");
     fwrite(byte_code, sizeof(*byte_code), pc, output);
 
     free(byte_code);
@@ -273,13 +287,16 @@ int main() {
 
     fclose(output);
 
-    printf("%X", byte_code);
+    printf("%X\n", byte_code);
 
     return 0;
 }
 
 static void asmTranslationError(unsigned int num) {
     switch (num) {
+        case ASM_OPEN_FILE_ERROR:
+            fprintf(stderr, "Translation error: cannot open input file");
+            exit(ASM_OPEN_FILE_ERROR);
         case ASM_UNKNOWN_INSTRUCTION:
             fprintf(stderr, "Translation error: unknown instruction");
             exit(ASM_UNKNOWN_INSTRUCTION);
@@ -308,7 +325,7 @@ static void asmTranslationError(unsigned int num) {
             fprintf(stderr, "Translation error: wrong je argument");
             exit(ASM_WRONG_JE_ARG);
         default:
-            fprintf(stderr, "Translation error: unknown instruction");
+            fprintf(stderr, "Translation error: unknown error");
             exit(ASM_UNKNOWN_ERROR);
     }
 }
@@ -493,8 +510,15 @@ struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *st
 
         if (!strcmp(str_instr, "end")) {
             pc++;
-            continue; /////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            continue;
         }
+
+#ifdef CPU_EXTRA_COMMANDS
+        if (!strcmp(str_instr, "sqrt")) {
+            pc++;
+            continue;
+        }
+#endif
 
         if (!strcmp(asm_code->str_ptr[i], "")) {
             continue;

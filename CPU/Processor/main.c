@@ -5,6 +5,10 @@
 #include "stack/stack.h"
 #include "asm.h"
 
+#ifdef CPU_EXTRA_COMMANDS
+#include <math.h>
+#endif //CPU_EXTRA_COMMANDS
+
 const unsigned int RAMLen = 16;
 const unsigned int RegisterNum = 4;
 
@@ -19,7 +23,7 @@ struct CPU {
 
 char *readCode(char *filename, unsigned int *size);
 
-void CPUCtor(struct CPU *CPU);
+void CPUCtor(struct CPU *CPU, char *input);
 
 void CPUDtor(struct CPU *CPU);
 
@@ -59,11 +63,24 @@ void jb(struct CPU *CPU);
 
 void je(struct CPU *CPU);
 
+int CPUerror(unsigned int num);
+
+#ifdef CPU_EXTRA_COMMANDS
+
+void sqrtInt(struct CPU *CPU);
+
+#endif
+
 //void end(struct CPU *CPU);
 
-int main() {
+int main(int argc, char *argv[]) {
+
+    if (argc != 2) {
+        CPUerror(ASM_OPEN_FILE_ERROR);
+    }
+
     struct CPU CPU = {};
-    CPUCtor(&CPU);
+    CPUCtor(&CPU, argv[1]);
 
     while (CPU.pc < CPU.codeSize) {
         switch (CPU.byte_code[CPU.pc]) {
@@ -123,7 +140,15 @@ int main() {
                 break;
             case ASM_END:
                 goto ASM_END_LABEL;
-                //default:
+
+#ifdef CPU_EXTRA_COMMANDS
+            case ASM_INT_SQRT:
+                sqrtInt(&CPU);
+                break;
+#endif
+
+            default:
+                CPUerror(ASM_UNKNOWN_INSTRUCTION);
 
         }
     }
@@ -135,13 +160,13 @@ int main() {
     return 0;
 }
 
-void CPUCtor(struct CPU *CPU) {
+void CPUCtor(struct CPU *CPU, char *input) {
     static struct Stack stack = {};
     StackCtor(&stack);
     CPU->stack = &stack;
     CPU->pc = 0;
     unsigned int codeSize = 0;
-    CPU->byte_code = readCode("D:\\Code\\CLionProjects\\asm\\cmake-build-debug\\bytecode.txt", &codeSize);
+    CPU->byte_code = readCode(input, &codeSize);
     CPU->codeSize = codeSize;
     CPU->registers = calloc(RegisterNum + 1, sizeof(*(CPU->registers)));
     CPU->ram = calloc(RAMLen, sizeof(*(CPU->ram)));
@@ -293,3 +318,24 @@ void je(struct CPU *CPU) {
     }
     StackPush(CPU->stack, a);
 }
+
+int CPUerror(unsigned int num) {
+    switch (num) {
+        case ASM_OPEN_FILE_ERROR:
+            fprintf(stderr, "CPU error: cannot open input file");
+            exit(ASM_OPEN_FILE_ERROR);
+        case ASM_UNKNOWN_INSTRUCTION:
+            fprintf(stderr, "CPU error: unknown instruction");
+            exit(ASM_UNKNOWN_INSTRUCTION);
+        default:
+            fprintf(stderr, "CPU error: unknown error");
+            exit(ASM_UNKNOWN_ERROR);
+    }
+}
+
+#ifdef CPU_EXTRA_COMMANDS
+void sqrtInt(struct CPU *CPU) {
+    CPU->pc++;
+    StackPush(CPU->stack, (int) sqrt(StackPop(CPU->stack)));
+}
+#endif //CPU_EXTRA_COMMANDS

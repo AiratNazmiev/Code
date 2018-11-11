@@ -1,6 +1,8 @@
 #ifndef ASM_H
 #define ASM_H
 
+#define CPU_EXTRA_COMMANDS
+
 //typedef int data_t; defined in stack.h
 
 const unsigned int StrMaxByteLen = 5;
@@ -9,16 +11,17 @@ const unsigned int MaxArgLen     = 100;
 const unsigned int LabelsNum     = 16;
 
 enum translationError {
-    ASM_UNKNOWN_ERROR       = -1,
-    ASM_UNKNOWN_INSTRUCTION = -2,
-    ASM_UNKNOWN_PUSH_ARG    = -3,
-    ASM_UNKNOWN_POP_ARG     = -4,
-    ASM_WRONG_LABEL         = -5,
-    ASM_WRONG_JMP_ARG       = -6,
-    ASM_WRONG_CALL_ARG      = -7,
-    ASM_WRONG_JA_ARG        = -8,
-    ASM_WRONG_JB_ARG        = -9,
-    ASM_WRONG_JE_ARG        = -10
+    ASM_OPEN_FILE_ERROR     = -1,
+    ASM_UNKNOWN_ERROR       = -2,
+    ASM_UNKNOWN_INSTRUCTION = -3,
+    ASM_UNKNOWN_PUSH_ARG    = -4,
+    ASM_UNKNOWN_POP_ARG     = -5,
+    ASM_WRONG_LABEL         = -6,
+    ASM_WRONG_JMP_ARG       = -7,
+    ASM_WRONG_CALL_ARG      = -8,
+    ASM_WRONG_JA_ARG        = -9,
+    ASM_WRONG_JB_ARG        = -10,
+    ASM_WRONG_JE_ARG        = -11
 };
 
 enum instructions {
@@ -41,6 +44,9 @@ enum instructions {
     ASM_JB         = 17,//<
     ASM_JE         = 18,//==
     ASM_END        = 19
+#ifdef CPU_EXTRA_COMMANDS
+    ,ASM_INT_SQRT  = 20
+#endif //CPU_EXTRA_COMMANDS
 };
 
 enum registerNum {
