@@ -44,8 +44,11 @@ enum instructions {
     ASM_JB         = 17,//<
     ASM_JE         = 18,//==
     ASM_END        = 19
+
 #ifdef CPU_EXTRA_COMMANDS
+
     ,ASM_INT_SQRT  = 20
+
 #endif //CPU_EXTRA_COMMANDS
 };
 

@@ -9,6 +9,10 @@
 #include <math.h>
 #endif //CPU_EXTRA_COMMANDS
 
+#define POP StackPop(CPU->stack)
+#define PUSH(num) StackPush(CPU->stack, num)
+#define PEEK StackPeek(CPU->stack)
+
 const unsigned int RAMLen = 16;
 const unsigned int RegisterNum = 4;
 
@@ -53,9 +57,9 @@ void out(struct CPU *CPU);//STACK PEEK
 
 void jmp(struct CPU *CPU); //To number of byte
 
-void call(struct CPU *CPU);
+void call(struct CPU *CPU, struct Stack *callStack);
 
-void ret(struct CPU *CPU);
+void ret(struct CPU *CPU, struct Stack *callStack);
 
 void ja(struct CPU *CPU);
 
@@ -66,18 +70,17 @@ void je(struct CPU *CPU);
 int CPUerror(unsigned int num);
 
 #ifdef CPU_EXTRA_COMMANDS
-
 void sqrtInt(struct CPU *CPU);
-
-#endif
-
-//void end(struct CPU *CPU);
+#endif //CPU_EXTRA_COMMANDS
 
 int main(int argc, char *argv[]) {
 
     if (argc != 2) {
         CPUerror(ASM_OPEN_FILE_ERROR);
     }
+
+    struct Stack callStack = {};
+    StackCtor(&callStack);
 
     struct CPU CPU = {};
     CPUCtor(&CPU, argv[1]);
@@ -124,10 +127,10 @@ int main(int argc, char *argv[]) {
                 jmp(&CPU);
                 break;
             case ASM_CALL:
-                call(&CPU);
+                call(&CPU, &callStack);
                 break;
             case ASM_RET:
-                ret(&CPU);
+                ret(&CPU, &callStack);
                 break;
             case ASM_JA:
                 ja(&CPU);
@@ -200,55 +203,55 @@ char *readCode(char *filename, unsigned int *size) {
 
 void pushConst(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, *(data_t *) (CPU->byte_code + CPU->pc));
+    PUSH(*(data_t *) (CPU->byte_code + CPU->pc));
     CPU->pc += sizeof(data_t);
 }
 
 void pushRegister(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, CPU->registers[CPU->byte_code[CPU->pc++]]);
+    PUSH(CPU->registers[CPU->byte_code[CPU->pc++]]);
 }
 
 void pushRAM(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, CPU->ram[CPU->byte_code[CPU->pc]]);
+    PUSH(CPU->ram[CPU->byte_code[CPU->pc]]);
     CPU->pc += sizeof(int);
 }
 
 void popReg(struct CPU *CPU) {
     CPU->pc++;
-    CPU->registers[CPU->byte_code[CPU->pc++]] = StackPop(CPU->stack);
+    CPU->registers[CPU->byte_code[CPU->pc++]] = POP;
 }
 
 void popRAM(struct CPU *CPU) {
     CPU->pc++;
-    CPU->ram[CPU->byte_code[CPU->pc]] = StackPop(CPU->stack);
+    CPU->ram[CPU->byte_code[CPU->pc]] = POP;
     CPU->pc += sizeof(int);
 }
 
 void popDel(struct CPU *CPU) {
     CPU->pc++;
-    StackPop(CPU->stack);
+    POP;
 }
 
 void add(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, StackPop(CPU->stack) + StackPop(CPU->stack));
+    PUSH(POP + POP);
 }
 
 void sub(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, StackPop(CPU->stack) - StackPop(CPU->stack));
+    PUSH(POP - POP);
 }
 
 void mul(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, StackPop(CPU->stack) * StackPop(CPU->stack));
+    PUSH(POP * POP);
 }
 
 void div(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, StackPop(CPU->stack) / StackPop(CPU->stack));
+    PUSH(POP / POP);
 }
 
 void in(struct CPU *CPU) {
@@ -259,12 +262,12 @@ void in(struct CPU *CPU) {
         printf("Input error: no input data\n");
         system("pause");
     }
-    StackPush(CPU->stack, input);
+    PUSH(input);
     CPU->pc++;
 }
 
 void out(struct CPU *CPU) {
-    printf("%d\n", StackPeek(CPU->stack));
+    printf("%d\n", PEEK);
     CPU->pc++;
 }
 
@@ -273,50 +276,51 @@ void jmp(struct CPU *CPU) {
     CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
 }
 
-void call(struct CPU *CPU) {
+void call(struct CPU *CPU, struct Stack *callStack) {
     CPU->pc++;
+    StackPush(callStack, CPU->pc + sizeof(int));
     CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
 }
 
-void ret(struct CPU *CPU) {
+void ret(struct CPU *CPU, struct Stack *callStack) {
     CPU->pc++;
-    CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
+    CPU->pc = StackPop(callStack);
 }
 
 void ja(struct CPU *CPU) {
     CPU->pc++;
-    data_t a = StackPop(CPU->stack);
-    data_t b = StackPeek(CPU->stack);
+    data_t a = POP;
+    data_t b = PEEK;
     if (a > b) {
         CPU->pc += sizeof(int);
     } else {
         CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
     }
-    StackPush(CPU->stack, a);
+    PUSH(a);
 }
 
 void jb(struct CPU *CPU) {
     CPU->pc++;
-    data_t a = StackPop(CPU->stack);
-    data_t b = StackPeek(CPU->stack);
+    data_t a = POP;
+    data_t b = PEEK;
     if (a < b) {
         CPU->pc += sizeof(int);
     } else {
         CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
     }
-    StackPush(CPU->stack, a);
+    PUSH(a);
 }
 
 void je(struct CPU *CPU) {
     CPU->pc++;
-    data_t a = StackPop(CPU->stack);
-    data_t b = StackPeek(CPU->stack);
+    data_t a = POP;
+    data_t b = PEEK;
     if (a == b) {
         CPU->pc += sizeof(int);
     } else {
         CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
     }
-    StackPush(CPU->stack, a);
+    PUSH(a);
 }
 
 int CPUerror(unsigned int num) {
@@ -336,6 +340,6 @@ int CPUerror(unsigned int num) {
 #ifdef CPU_EXTRA_COMMANDS
 void sqrtInt(struct CPU *CPU) {
     CPU->pc++;
-    StackPush(CPU->stack, (int) sqrt(StackPop(CPU->stack)));
+    PUSH((int) sqrt(POP));
 }
 #endif //CPU_EXTRA_COMMANDS

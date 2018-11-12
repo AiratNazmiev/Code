@@ -6,12 +6,7 @@
 #include "stack/stack.h"
 #include "asm.h"
 
-struct Labels {
-    int *lab;
-    int *callLab;
-};
-
-struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str);
+int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str);
 
 static void asmTranslationError(unsigned int num);
 
@@ -37,7 +32,7 @@ int main(int argc, char *argv[]) {
     char *str_arg = calloc(MaxArgLen, sizeof(*str_arg));
     char *str = calloc(MaxStrLen, sizeof(*str));
 
-    struct Labels labels = asmLabels(&asm_code, str_instr, str_arg, str);
+    int *labels = asmLabels(&asm_code, str_instr, str_arg, str);
 
     for (int i = 0; i < asm_code.numStr; i++) {
         data_t arg1 = -1;
@@ -186,7 +181,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 byte_code[pc++] = ASM_JMP;
-                *(int *) (byte_code + pc) = labels.lab[arg1];
+                *(int *) (byte_code + pc) = labels[arg1];
                 pc += sizeof(int);
                 continue;
             } else {
@@ -198,26 +193,30 @@ int main(int argc, char *argv[]) {
 
             if (sscanf(asm_code.str_ptr[i], "call :%d", &arg1) == 1) {
                 byte_code[pc++] = ASM_CALL;
-                *(int *) (byte_code + pc) = labels.lab[arg1];
+                *(int *) (byte_code + pc) = labels[arg1];
                 pc += sizeof(int);
-                labels.callLab[arg1] = pc;
                 continue;
             } else {
                 asmTranslationError(ASM_WRONG_CALL_ARG);
             }
         }
-
+        /*
         if (sscanf(asm_code.str_ptr[i], "ret :%d", &arg1) == 1) {//Do call analysis
             byte_code[pc++] = ASM_RET;
             *(int *) (byte_code + pc) = labels.callLab[arg1];
             pc += sizeof(int);
             continue;
         }
+         */
+        if (!strcmp(str_instr, "ret")) {
+            byte_code[pc++] = ASM_RET;
+            continue;
+        }
 
         if (!strcmp(str_instr, "ja")) {
             if (sscanf(asm_code.str_ptr[i], "ja :%d", &arg1) == 1) {
                 byte_code[pc++] = ASM_JA;
-                *(int *) (byte_code + pc) = labels.lab[arg1];
+                *(int *) (byte_code + pc) = labels[arg1];
                 pc += sizeof(int);
                 continue;
             } else {
@@ -228,7 +227,7 @@ int main(int argc, char *argv[]) {
         if (!strcmp(str_instr, "jb")) {
             if (sscanf(asm_code.str_ptr[i], "jb :%d", &arg1) == 1) {
                 byte_code[pc++] = ASM_JB;
-                *(int *) (byte_code + pc) = labels.lab[arg1];
+                *(int *) (byte_code + pc) = labels[arg1];
                 pc += sizeof(int);
                 continue;
             } else {
@@ -239,7 +238,7 @@ int main(int argc, char *argv[]) {
         if (!strcmp(str_instr, "je")) {
             if (sscanf(asm_code.str_ptr[i], "je :%d", &arg1) == 1) {
                 byte_code[pc++] = ASM_JE;
-                *(int *) (byte_code + pc) = labels.lab[arg1];
+                *(int *) (byte_code + pc) = labels[arg1];
                 pc += sizeof(int);
                 continue;
             } else {
@@ -251,7 +250,7 @@ int main(int argc, char *argv[]) {
             if ((arg1 < 0) || (arg1 >= LabelsNum)) {
                 asmTranslationError(ASM_WRONG_LABEL);
             } else {
-                labels.lab[arg1] = pc;
+                labels[arg1] = pc;
             }
             continue;
         }
@@ -266,7 +265,7 @@ int main(int argc, char *argv[]) {
             byte_code[pc++] = ASM_INT_SQRT;
             continue;
         }
-#endif
+#endif //CPU_EXTRA_COMMANDS
 
         if (!strcmp(asm_code.str_ptr[i], "")) {
             continue;
@@ -282,8 +281,7 @@ int main(int argc, char *argv[]) {
     free(str);
     free(str_arg);
     free(str_instr);
-    free(labels.lab);
-    free(labels.callLab);
+    free(labels);
 
     fclose(output);
 
@@ -330,9 +328,9 @@ static void asmTranslationError(unsigned int num) {
     }
 }
 
-struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str) {
+int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str) {
     int *labels = (int *) calloc(LabelsNum, sizeof(*labels));
-    int *callLabels = (int *) calloc(LabelsNum, sizeof(*callLabels));
+    //int *callLabels = (int *) calloc(LabelsNum, sizeof(*callLabels));
 
     unsigned int pc = 0;
 
@@ -480,7 +478,7 @@ struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *st
         }
 
         if (!strcmp(str_instr, "ret")) {
-            pc += (sizeof(int) + 1);
+            pc ++;
             continue;
         }
 
@@ -526,7 +524,7 @@ struct Labels asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *st
             asmTranslationError(ASM_UNKNOWN_INSTRUCTION);
         }
     }
-    struct Labels lab = {labels, callLabels};
+    //struct Labels lab = {labels, callLabels};
 
-    return lab;
+    return labels;
 }
