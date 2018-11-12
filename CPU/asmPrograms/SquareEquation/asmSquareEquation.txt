@@ -57,7 +57,7 @@ end ;exit
 pop
 sqrt
 pop rd
-ret :1
+ret
 
 :2
 push 2
@@ -71,7 +71,7 @@ sub
 div
 out
 pop
-ret :2
+ret
 
 :3
 push 2
@@ -85,4 +85,4 @@ add
 div
 out
 pop
-ret :3
+ret

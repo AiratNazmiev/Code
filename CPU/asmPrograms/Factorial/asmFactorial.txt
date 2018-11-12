@@ -20,14 +20,14 @@ end
 call :8 ;next num
 call :3 ;inc counter
 call :5 ;check if reached num
-ret :2
+ret
 
 :3
 push rc
 push 1
 add
 pop rc
-ret :3
+ret
 
 :5
 pop ra
@@ -39,7 +39,7 @@ jmp :7 ;break of cycle
 :6
 pop rc
 call :2
-ret :5
+ret
 
 :8
 push ra
@@ -47,4 +47,4 @@ push rc
 push 1
 add
 mul
-ret :8
+ret
