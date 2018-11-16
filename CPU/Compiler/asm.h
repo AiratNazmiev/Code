@@ -1,9 +1,8 @@
 #ifndef ASM_H
 #define ASM_H
 
-#define CPU_EXTRA_COMMANDS
-
 //typedef int data_t; defined in stack.h
+typedef int data_t;
 
 const unsigned int StrMaxByteLen = 5;
 const unsigned int MaxStrLen     = 100;
@@ -43,14 +42,10 @@ enum instructions {
     ASM_JA         = 16,//>
     ASM_JB         = 17,//<
     ASM_JE         = 18,//==
-    ASM_END        = 19
-
-#ifdef CPU_EXTRA_COMMANDS
-
-    ,ASM_INT_SQRT  = 20
-
-#endif //CPU_EXTRA_COMMANDS
+    ASM_END        = 19,
+    ASM_INT_SQRT   = 20
 };
+
 
 enum registerNum {
     RA = 1,

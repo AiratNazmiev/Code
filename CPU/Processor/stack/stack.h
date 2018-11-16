@@ -18,14 +18,11 @@ typedef int data_t; //CHANGE IN/OUT INSTRUCTIONS FOR SPECIFIC TYPE
    }\
 }
 #else
-
 #define ASSERT
 #define UNITTEST
-
 #endif //UNITTEST
 
 #ifdef STACKSAFE
-
 /*!
  * @brief Stack structure, has data_t array, uint size and uint capacity with hash sum
  *
@@ -37,7 +34,6 @@ struct Stack {
     unsigned int capacity;
     unsigned int hash;
 };
-
 #else
 
 /*!
@@ -49,7 +45,6 @@ struct Stack {
     unsigned int size;
     unsigned int capacity;
 };
-
 #endif //STACKSAFE
 
 /*!

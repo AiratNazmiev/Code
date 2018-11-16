@@ -33,12 +33,10 @@ const data_t ERROR_VALUE = INT_MAX;
 const data_t STACK_DATA_POISON = INT_MAX;
 
 #ifdef STACKSAFE
-
 const unsigned int HASH_C = 42;
 const unsigned int HASH_MOD = 123321;
 const data_t LEFT_CANARY = DBL_MAX;
 const data_t RIGHT_CANARY = DBL_MAX;
-
 #endif
 
 enum errorNum {
@@ -79,7 +77,6 @@ enum errorNum StackOK(const struct Stack *s) {
     }
 
 #ifdef STACKSAFE
-
     if (s->data[0] != LEFT_CANARY) {
         return LEFT_BOARDER_DAMAGED;
     }
@@ -91,7 +88,6 @@ enum errorNum StackOK(const struct Stack *s) {
     if (s->hash != hashCalc(s)) {
         return FORBIDDEN_REPLACEMENT;
     }
-
 #endif
 
     return OK;
@@ -99,13 +95,9 @@ enum errorNum StackOK(const struct Stack *s) {
 
 void StackCtor(struct Stack *s) {
 #ifdef STACKSAFE
-
     s->data = (data_t *) calloc(2, sizeof(*(s->data))); //////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! calloc 2
-
 #else
-
     s->data = (data_t *) calloc(1, sizeof(*(s->data)));
-
 #endif
     if (s->data == NULL) {
         fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
@@ -113,9 +105,7 @@ void StackCtor(struct Stack *s) {
 
     s->size = 0;
     s->capacity = 0;
-
 #ifdef STACKSAFE
-
     s->data[0] = LEFT_CANARY;
     s->data[1] = RIGHT_CANARY;
     s->hash = 0;
@@ -131,13 +121,9 @@ void StackPush(struct Stack *s, data_t value) {
     if (s->capacity == 0) {
 
 #ifdef STACKSAFE
-
         tmp = realloc(s->data, 3 * sizeof(data_t));
-
 #else
-
         tmp = realloc(s->data, 1 * sizeof(data_t));
-
 #endif
 
         if (tmp == NULL) {
@@ -148,15 +134,11 @@ void StackPush(struct Stack *s, data_t value) {
             s->capacity = 1;
 
 #ifdef STACKSAFE
-
             s->data[1] = value;
             s->data[2] = RIGHT_CANARY;
             s->hash = (s->hash + ((unsigned int) value * HASH_C)) % HASH_MOD;
-
 #else
-
             s->data[0] = value;
-
 #endif
 
         }
@@ -165,13 +147,11 @@ void StackPush(struct Stack *s, data_t value) {
         if (s->capacity == s->size) {
 
 #ifdef STACKSAFE
-
             if (2 + s->capacity * STACK_EXP_REDUCT >= STACK_MAX_SIZE) {
                 fprintf(stderr, "Function %s: Stack max size error %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
             }
 
             tmp = realloc(s->data, (2 + s->capacity * STACK_EXP_REDUCT) * sizeof(data_t));
-
 #else
 
             if (s->capacity * STACK_EXP_REDUCT >= STACK_MAX_SIZE) {
@@ -182,7 +162,6 @@ void StackPush(struct Stack *s, data_t value) {
             tmp = realloc(s->data, (s->capacity * STACK_EXP_REDUCT) * sizeof(data_t));
 
 #endif
-
             if (tmp == NULL) {
                 fprintf(stderr, "Function %s: Memory allocation error in File %s, line %d\n", __FUNCTION__, __FILE__, __LINE__);
             } else {
@@ -191,17 +170,12 @@ void StackPush(struct Stack *s, data_t value) {
             }
         }
 
-
 #ifdef STACKSAFE
-
         s->data[1 + s->size++] = value;
         s->data[1 + s->size] = RIGHT_CANARY;
         s->hash = (s->hash + ((unsigned int) value * HASH_C)) % HASH_MOD;
-
 #else
-
         s->data[s->size++] = value;
-
 #endif
     }
 }
@@ -218,13 +192,9 @@ data_t StackPop(struct Stack *s) {
     if (s->size * STACK_EXP_REDUCT <= s->capacity) {
 
 #ifdef STACKSAFE
-
         data_t *tmp = realloc(s->data, (2 + s->capacity / STACK_EXP_REDUCT) * sizeof(data_t));
-
 #else
-
         data_t *tmp = realloc(s->data, (s->capacity / STACK_EXP_REDUCT) * sizeof(data_t));
-
 #endif
 
         if (tmp == NULL) {
@@ -239,16 +209,12 @@ data_t StackPop(struct Stack *s) {
     }
 
 #ifdef STACKSAFE
-
     data_t value = s->data[s->size--];
     s->data[1 + s->size] = RIGHT_CANARY;
     s->hash = hashCalc(s);
-
 #else
-
     data_t value = s->data[--s->size];
     s->data[s->size] = STACK_DATA_POISON;
-
 #endif
 
     return value;
@@ -260,13 +226,9 @@ data_t StackPeek(const struct Stack *s) {
     if (s->size > 0) {
 
 #ifdef STACKSAFE
-
         return s->data[s->size];
-
 #else
-
         return s->data[s->size - 1];
-
 #endif
     } else {
         fprintf(stderr, "Function %s: Cannot peek element error (empty stack) in File %s, line %d\n", __FUNCTION__,
@@ -294,13 +256,9 @@ void StackClear(struct Stack *s) {
     StackPoison(s);
 
 #ifdef STACKSAFE
-
     s->data = realloc(s->data, 2 * sizeof(data_t));
-
 #else
-
     s->data = realloc(s->data, 1 * sizeof(data_t));
-
 #endif
 
     if (s->data == NULL) {
@@ -309,11 +267,9 @@ void StackClear(struct Stack *s) {
     }
 
 #ifdef STACKSAFE
-
     s->data[0] = LEFT_CANARY;
     s->data[1] = RIGHT_CANARY;
     s->hash = 0;
-
 #endif
 
     s->capacity = 0;
@@ -330,9 +286,7 @@ void StackDtor(struct Stack *s) {
     s->capacity = STACK_POISON;
 
 #ifdef STACKSAFE
-
     s->hash = STACK_POISON;
-
 #endif
 }
 
@@ -353,13 +307,9 @@ data_t *StackToArray(const struct Stack *s) {
     }
 
 #ifdef STACKSAFE
-
     memcpy(arr, s->data + 1, sizeof(data_t) * s->size);
-
 #else
-
     memcpy(arr, s->data, sizeof(data_t) * s->size);
-
 #endif
 
     return arr;
@@ -377,7 +327,6 @@ void StackDump(FILE *f, struct Stack *s) {
     fprintf(f, "array data[%u] :[0x%X]\n", s->size, &(s->data[0]));
 
 #ifdef STACKSAFE
-
     fprintf(f, "[canary] data[0] = %lf\n", s->data[0]);
 
     for (int i = 1; i < s->size; i++) {
@@ -389,9 +338,7 @@ void StackDump(FILE *f, struct Stack *s) {
     for (int i = s->size + 1; i < s->capacity + 2; i++) {
         fprintf(f, "[out] data[%u] = %lf\n", i, s->data[i]);
     }
-
 #else
-
     for (int i = 0; i < s->size; i++) {
         fprintf(f, "[in] data[%u] = %d\n", i, s->data[i]);
     }
@@ -399,7 +346,6 @@ void StackDump(FILE *f, struct Stack *s) {
     for (int i = s->size; i < s->capacity; i++) {
         fprintf(f, "[out] data[%u] = %d\n", i, s->data[i]);
     }
-
 #endif
 
     fprintf(f, "}\n");
@@ -408,11 +354,9 @@ void StackDump(FILE *f, struct Stack *s) {
 inline static void StackPoison(struct Stack *s) {
 
 #ifdef STACKSAFE
-
     for (int i = 0; i < s->size + 2; i++) {
         s->data[i] = STACK_DATA_POISON;
     }
-
 #else
 
     for (int i = 0; i < s->size; i++) {
@@ -421,9 +365,7 @@ inline static void StackPoison(struct Stack *s) {
 
 #endif
 }
-
 #ifdef STACKSAFE
-
 inline static unsigned int hashCalc(const struct Stack *s) {
     unsigned int sum = 0;
 
@@ -433,5 +375,4 @@ inline static unsigned int hashCalc(const struct Stack *s) {
 
     return sum;
 }
-
 #endif

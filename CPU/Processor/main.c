@@ -1,82 +1,21 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <malloc.h>
-#include <process.h>
-#include "stack/stack.h"
-#include "asm.h"
-
-#ifdef CPU_EXTRA_COMMANDS
 #include <math.h>
-#endif //CPU_EXTRA_COMMANDS
+#include <assert.h>
+#include <process.h>
 
-#define POP StackPop(CPU->stack)
-#define PUSH(num) StackPush(CPU->stack, num)
-#define PEEK StackPeek(CPU->stack)
+#include "stack/stack.h"
+#include "CPU.h"
 
 const unsigned int RAMLen = 16;
 const unsigned int RegisterNum = 4;
-
-struct CPU {
-    struct Stack *stack;
-    unsigned int pc;
-    unsigned int codeSize;
-    char *byte_code;
-    data_t *registers;
-    data_t *ram;
-};
-
-char *readCode(char *filename, unsigned int *size);
-
-void CPUCtor(struct CPU *CPU, char *input);
-
-void CPUDtor(struct CPU *CPU);
-
-void pushConst(struct CPU *CPU);
-
-void pushRegister(struct CPU *CPU);
-
-void pushRAM(struct CPU *CPU);
-
-void popReg(struct CPU *CPU);
-
-void popRAM(struct CPU *CPU);
-
-void popDel(struct CPU *CPU);
-
-void add(struct CPU *CPU);
-
-void sub(struct CPU *CPU);//First sub Second or conversely
-
-void mul(struct CPU *CPU);
-
-void div(struct CPU *CPU);
-
-void in(struct CPU *CPU);
-
-void out(struct CPU *CPU);//STACK PEEK
-
-void jmp(struct CPU *CPU); //To number of byte
-
-void call(struct CPU *CPU, struct Stack *callStack);
-
-void ret(struct CPU *CPU, struct Stack *callStack);
-
-void ja(struct CPU *CPU);
-
-void jb(struct CPU *CPU);
-
-void je(struct CPU *CPU);
-
-int CPUerror(unsigned int num);
-
-#ifdef CPU_EXTRA_COMMANDS
-void sqrtInt(struct CPU *CPU);
-#endif //CPU_EXTRA_COMMANDS
+const unsigned int CPU_POISON = UINT_MAX;
 
 int main(int argc, char *argv[]) {
 
     if (argc != 2) {
-        CPUerror(ASM_OPEN_FILE_ERROR);
+        CPUerror(CPU_OPEN_FILE_ERROR);
     }
 
     struct Stack callStack = {};
@@ -86,77 +25,24 @@ int main(int argc, char *argv[]) {
     CPUCtor(&CPU, argv[1]);
 
     while (CPU.pc < CPU.codeSize) {
+        CPU_ASSERT(CPUOk(&CPU));
+
         switch (CPU.byte_code[CPU.pc]) {
-            case ASM_PUSH_CONST:
-                pushConst(&CPU);
-                break;
-            case ASM_PUSH_REG:
-                pushRegister(&CPU);
-                break;
-            case ASM_PUSH_RAM:
-                pushRAM(&CPU);
-                break;
-            case ASM_POP_REG:
-                popReg(&CPU);
-                break;
-            case ASM_POP_RAM:
-                popRAM(&CPU);
-                break;
-            case ASM_POP_DEL:
-                popDel(&CPU);
-                break;
-            case ASM_ADD:
-                add(&CPU);
-                break;
-            case ASM_SUB:
-                sub(&CPU);
-                break;
-            case ASM_MUL:
-                mul(&CPU);
-                break;
-            case ASM_DIV:
-                div(&CPU);
-                break;
-            case ASM_IN:
-                in(&CPU);
-                break;
-            case ASM_OUT:
-                out(&CPU);
-                break;
-            case ASM_JMP:
-                jmp(&CPU);
-                break;
-            case ASM_CALL:
-                call(&CPU, &callStack);
-                break;
-            case ASM_RET:
-                ret(&CPU, &callStack);
-                break;
-            case ASM_JA:
-                ja(&CPU);
-                break;
-            case ASM_JB:
-                jb(&CPU);
-                break;
-            case ASM_JE:
-                je(&CPU);
-                break;
-            case ASM_END:
-                goto ASM_END_LABEL;
 
-#ifdef CPU_EXTRA_COMMANDS
-            case ASM_INT_SQRT:
-                sqrtInt(&CPU);
-                break;
-#endif
+        #define DEF_CMD(name, num, asm, asm_label, processing)  case num: {processing; break;}
+        #include "D:/Code/CLionProjects/asmCommands/commands.h"
+        #undef DEF_CMD
 
-            default:
-                CPUerror(ASM_UNKNOWN_INSTRUCTION);
+            default: CPUerror(CPU_UNKNOWN_INSTRUCTION);
 
         }
     }
 
-    ASM_END_LABEL: // form case ASM_END in main switch
+    ASM_END_LABEL:;// form case ASM_END in main switch
+
+    FILE *dumpFile = fopen("CPUDdmp.txt", "w");
+    CPUDump(dumpFile, &CPU);
+    fclose(dumpFile);
 
     CPUDtor(&CPU);
 
@@ -167,32 +53,113 @@ void CPUCtor(struct CPU *CPU, char *input) {
     static struct Stack stack = {};
     StackCtor(&stack);
     CPU->stack = &stack;
+
     CPU->pc = 0;
+
     unsigned int codeSize = 0;
     CPU->byte_code = readCode(input, &codeSize);
     CPU->codeSize = codeSize;
+
     CPU->registers = calloc(RegisterNum + 1, sizeof(*(CPU->registers)));
     CPU->ram = calloc(RAMLen, sizeof(*(CPU->ram)));
 }
 
 void CPUDtor(struct CPU *CPU) {
+    CPU_ASSERT(CPUOk(CPU));
     StackDtor(CPU->stack);
-    CPU->pc = 0;
-    CPU->codeSize = 0;
+    CPU->pc = CPU_POISON;
+    CPU->codeSize = CPU_POISON;
+
     free(CPU->byte_code);
     free(CPU->registers);
     free(CPU->ram);
+
     CPU->byte_code = NULL;
     CPU->registers = NULL;
     CPU->ram = NULL;
 }
 
+int CPUOk(struct CPU *CPU){
+    if (CPU == NULL){
+        return CPU_NULLPTR;
+    }
+
+    if (CPU->stack == NULL){
+        return CPU_STACK_NULLPTR;
+    }
+
+    if (CPU->byte_code == NULL){
+        return CPU_CODE_NULLPTR;
+    }
+
+    if (CPU->ram == NULL){
+        return CPU_RAM_NULLPTR;
+    }
+
+    if (CPU->registers == NULL){
+        return CPU_REG_NULLPTR;
+    }
+
+    if (CPU->pc == CPU_POISON){
+        return CPU_DAMAGED_PC;
+    }
+
+    if (CPU->codeSize == CPU_POISON){
+        return CPU_DAMAGED_CODESIZE;
+    }
+
+    return CPU_OK;
+}
+
+int CPUerror(unsigned int num) {
+    switch (num) {
+        case CPU_WRONG_FILE_NAME:
+            fprintf(stderr, "CPU error: wrong input file name");
+            exit(CPU_OPEN_FILE_ERROR);
+        case CPU_OPEN_FILE_ERROR:
+            fprintf(stderr, "CPU error: cannot open input file");
+            exit(CPU_OPEN_FILE_ERROR);
+        case CPU_UNKNOWN_INSTRUCTION:
+            fprintf(stderr, "CPU error: unknown instruction");
+            exit(CPU_UNKNOWN_INSTRUCTION);
+        default:
+            fprintf(stderr, "CPU error: unknown error");
+            exit(CPU_UNKNOWN_ERROR);
+    }
+}
+
+void CPUDump(FILE* file, struct CPU *CPU){
+    fprintf(file, "<<<<<CPU DUMP>>>>> {\n\n");
+    fprintf(file, "1)CPU.stack:\n\n");
+    StackDump(file, CPU->stack);
+    fprintf(file, "\n2)CPU.pc = %u\n\n", CPU->pc);
+    fprintf(file, "3)CPU.codeSize = %u\n\n", CPU->codeSize);
+    fprintf(file, "4)&(CPU.bytecode) = [0x%X]\n\n", CPU->byte_code);
+
+    fprintf(file, "5)&(CPU.registers) = [0x%X]: ", CPU->registers);
+    for (int i = 1; i <= RegisterNum; i++) fprintf(file, "%d ", CPU->registers[i]);
+    fprintf(file, "\n");
+
+    fprintf(file, "\n6)&(CPU.ram) = [0x%X]: ", CPU->ram);
+    for (int i = 0; i < RAMLen; i++) fprintf(file, "%d ", CPU->ram[i]);
+    fprintf(file, "\n}\n\n");
+}
+
 char *readCode(char *filename, unsigned int *size) {
+    if (filename == NULL) {
+        CPUerror(CPU_WRONG_FILE_NAME);
+    }
+
     FILE *input = fopen(filename, "rb");
+
+    if (input == NULL) {
+        CPUerror(CPU_OPEN_FILE_ERROR);
+    }
 
     struct stat fileStat = {};
     fstat(fileno(input), &fileStat);
     *size = fileStat.st_size;
+
     char *buffer = (char *) calloc(size, sizeof(*buffer));
     fread(buffer, sizeof(*buffer), size, input);
 
@@ -200,146 +167,3 @@ char *readCode(char *filename, unsigned int *size) {
 
     return buffer;
 }
-
-void pushConst(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(*(data_t *) (CPU->byte_code + CPU->pc));
-    CPU->pc += sizeof(data_t);
-}
-
-void pushRegister(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(CPU->registers[CPU->byte_code[CPU->pc++]]);
-}
-
-void pushRAM(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(CPU->ram[CPU->byte_code[CPU->pc]]);
-    CPU->pc += sizeof(int);
-}
-
-void popReg(struct CPU *CPU) {
-    CPU->pc++;
-    CPU->registers[CPU->byte_code[CPU->pc++]] = POP;
-}
-
-void popRAM(struct CPU *CPU) {
-    CPU->pc++;
-    CPU->ram[CPU->byte_code[CPU->pc]] = POP;
-    CPU->pc += sizeof(int);
-}
-
-void popDel(struct CPU *CPU) {
-    CPU->pc++;
-    POP;
-}
-
-void add(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(POP + POP);
-}
-
-void sub(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(POP - POP);
-}
-
-void mul(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(POP * POP);
-}
-
-void div(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH(POP / POP);
-}
-
-void in(struct CPU *CPU) {
-    system("pause");
-    printf("Enter input number\n");
-    data_t input = 0;
-    while (scanf("%d", &input) == 0) {
-        printf("Input error: no input data\n");
-        system("pause");
-    }
-    PUSH(input);
-    CPU->pc++;
-}
-
-void out(struct CPU *CPU) {
-    printf("%d\n", PEEK);
-    CPU->pc++;
-}
-
-void jmp(struct CPU *CPU) {
-    CPU->pc++;
-    CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
-}
-
-void call(struct CPU *CPU, struct Stack *callStack) {
-    CPU->pc++;
-    StackPush(callStack, CPU->pc + sizeof(int));
-    CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
-}
-
-void ret(struct CPU *CPU, struct Stack *callStack) {
-    CPU->pc++;
-    CPU->pc = StackPop(callStack);
-}
-
-void ja(struct CPU *CPU) {
-    CPU->pc++;
-    data_t a = POP;
-    data_t b = PEEK;
-    if (a > b) {
-        CPU->pc += sizeof(int);
-    } else {
-        CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
-    }
-    PUSH(a);
-}
-
-void jb(struct CPU *CPU) {
-    CPU->pc++;
-    data_t a = POP;
-    data_t b = PEEK;
-    if (a < b) {
-        CPU->pc += sizeof(int);
-    } else {
-        CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
-    }
-    PUSH(a);
-}
-
-void je(struct CPU *CPU) {
-    CPU->pc++;
-    data_t a = POP;
-    data_t b = PEEK;
-    if (a == b) {
-        CPU->pc += sizeof(int);
-    } else {
-        CPU->pc = *(int *) (CPU->byte_code + CPU->pc);
-    }
-    PUSH(a);
-}
-
-int CPUerror(unsigned int num) {
-    switch (num) {
-        case ASM_OPEN_FILE_ERROR:
-            fprintf(stderr, "CPU error: cannot open input file");
-            exit(ASM_OPEN_FILE_ERROR);
-        case ASM_UNKNOWN_INSTRUCTION:
-            fprintf(stderr, "CPU error: unknown instruction");
-            exit(ASM_UNKNOWN_INSTRUCTION);
-        default:
-            fprintf(stderr, "CPU error: unknown error");
-            exit(ASM_UNKNOWN_ERROR);
-    }
-}
-
-#ifdef CPU_EXTRA_COMMANDS
-void sqrtInt(struct CPU *CPU) {
-    CPU->pc++;
-    PUSH((int) sqrt(POP));
-}
-#endif //CPU_EXTRA_COMMANDS

@@ -3,7 +3,6 @@
 #include <mem.h>
 #include <assert.h>
 #include "readtext/readtext.h"
-#include "stack/stack.h"
 #include "asm.h"
 
 int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str);
@@ -51,200 +50,10 @@ int main(int argc, char *argv[]) {
             *comment = 0;
         }
 
-        if (!strcmp(str_instr, "push")) {
+        #define DEF_CMD(name, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm}
+        #include "D:/Code/CLionProjects/asmCommands/commands.h"
+        #undef DEF_CMD
 
-            if (sscanf(asm_code.str_ptr[i], "push %d", &arg1) == 1) { //5b
-                byte_code[pc++] = ASM_PUSH_CONST;
-                *(data_t *) (byte_code + pc) = arg1; //отличиче ((int *)name)[] от *(int *)(name + i)
-                pc += sizeof(data_t);
-                continue;
-            }
-
-            if (sscanf(asm_code.str_ptr[i], "push %s", str_arg) == 1) {
-
-                if (!strcmp(str_arg, "ra")) {
-                    byte_code[pc++] = ASM_PUSH_REG;
-                    byte_code[pc++] = RA;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rb")) {
-                    byte_code[pc++] = ASM_PUSH_REG;
-                    byte_code[pc++] = RB;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rc")) {
-                    byte_code[pc++] = ASM_PUSH_REG;
-                    byte_code[pc++] = RC;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rd")) {
-                    byte_code[pc++] = ASM_PUSH_REG;
-                    byte_code[pc++] = RD;
-                    continue;
-                }
-
-                if (sscanf(asm_code.str_ptr[i], "push [%d]", &arg1) == 1) { // добавить в стек элемент из RAM[arg1]
-                    byte_code[pc++] = ASM_PUSH_RAM;
-                    *(int *) (byte_code + pc) = arg1;
-                    pc += sizeof(int);
-                    continue;
-                }
-            }
-
-            asmTranslationError(ASM_UNKNOWN_PUSH_ARG);
-        }
-
-        if (!strcmp(str_instr, "pop")) {
-
-            if (sscanf(asm_code.str_ptr[i], "pop %s", str_arg) == 1) {
-
-                if (!strcmp(str_arg, "ra")) {//5b
-                    byte_code[pc++] = ASM_POP_REG;
-                    byte_code[pc++] = RA;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rb")) {
-                    byte_code[pc++] = ASM_POP_REG;
-                    byte_code[pc++] = RB;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rc")) {
-                    byte_code[pc++] = ASM_POP_REG;
-                    byte_code[pc++] = RC;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rd")) {
-                    byte_code[pc++] = ASM_POP_REG;
-                    byte_code[pc++] = RD;
-                    continue;
-                }
-            }
-
-            if (sscanf(asm_code.str_ptr[i], "pop [%d]", &arg1) == 1) {
-                byte_code[pc++] = ASM_POP_RAM;
-                *(int *) (byte_code + pc) = arg1;
-                pc += sizeof(int);
-                continue;
-            }
-
-            if (!strcmp(str_arg, "")) {
-                byte_code[pc++] = ASM_POP_DEL;
-                continue;
-            } else {
-                asmTranslationError(ASM_UNKNOWN_POP_ARG);
-            }
-
-        }
-
-        if (!strcmp(str_instr, "add")) {
-            byte_code[pc++] = ASM_ADD;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "sub")) {
-            byte_code[pc++] = ASM_SUB;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "mul")) {
-            byte_code[pc++] = ASM_MUL;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "div")) {
-            byte_code[pc++] = ASM_DIV;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "in")) {
-            byte_code[pc++] = ASM_IN;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "out")) {
-            byte_code[pc++] = ASM_OUT;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "jmp")) {
-
-            if (sscanf(asm_code.str_ptr[i], "jmp :%d", &arg1) == 1) {
-
-                if ((arg1 < 0) || (arg1 >= LabelsNum)) {
-                    asmTranslationError(ASM_WRONG_LABEL);
-                }
-
-                byte_code[pc++] = ASM_JMP;
-                *(int *) (byte_code + pc) = labels[arg1];
-                pc += sizeof(int);
-                continue;
-            } else {
-                asmTranslationError(ASM_WRONG_JMP_ARG);
-            }
-        }
-
-        if (!strcmp(str_instr, "call")) {
-
-            if (sscanf(asm_code.str_ptr[i], "call :%d", &arg1) == 1) {
-                byte_code[pc++] = ASM_CALL;
-                *(int *) (byte_code + pc) = labels[arg1];
-                pc += sizeof(int);
-                continue;
-            } else {
-                asmTranslationError(ASM_WRONG_CALL_ARG);
-            }
-        }
-        /*
-        if (sscanf(asm_code.str_ptr[i], "ret :%d", &arg1) == 1) {//Do call analysis
-            byte_code[pc++] = ASM_RET;
-            *(int *) (byte_code + pc) = labels.callLab[arg1];
-            pc += sizeof(int);
-            continue;
-        }
-         */
-        if (!strcmp(str_instr, "ret")) {
-            byte_code[pc++] = ASM_RET;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "ja")) {
-            if (sscanf(asm_code.str_ptr[i], "ja :%d", &arg1) == 1) {
-                byte_code[pc++] = ASM_JA;
-                *(int *) (byte_code + pc) = labels[arg1];
-                pc += sizeof(int);
-                continue;
-            } else {
-                asmTranslationError(ASM_WRONG_JA_ARG);
-            }
-        }
-
-        if (!strcmp(str_instr, "jb")) {
-            if (sscanf(asm_code.str_ptr[i], "jb :%d", &arg1) == 1) {
-                byte_code[pc++] = ASM_JB;
-                *(int *) (byte_code + pc) = labels[arg1];
-                pc += sizeof(int);
-                continue;
-            } else {
-                asmTranslationError(ASM_WRONG_JB_ARG);
-            }
-        }
-
-        if (!strcmp(str_instr, "je")) {
-            if (sscanf(asm_code.str_ptr[i], "je :%d", &arg1) == 1) {
-                byte_code[pc++] = ASM_JE;
-                *(int *) (byte_code + pc) = labels[arg1];
-                pc += sizeof(int);
-                continue;
-            } else {
-                asmTranslationError(ASM_WRONG_JE_ARG);
-            }
-        }
 
         if (sscanf(asm_code.str_ptr[i], ":%d", &arg1) == 1) {
             if ((arg1 < 0) || (arg1 >= LabelsNum)) {
@@ -254,18 +63,6 @@ int main(int argc, char *argv[]) {
             }
             continue;
         }
-
-        if (!strcmp(str_instr, "end")) {
-            byte_code[pc++] = ASM_END;
-            continue;
-        }
-
-#ifdef CPU_EXTRA_COMMANDS
-        if (!strcmp(str_instr, "sqrt")) {
-            byte_code[pc++] = ASM_INT_SQRT;
-            continue;
-        }
-#endif //CPU_EXTRA_COMMANDS
 
         if (!strcmp(asm_code.str_ptr[i], "")) {
             continue;
@@ -284,8 +81,6 @@ int main(int argc, char *argv[]) {
     free(labels);
 
     fclose(output);
-
-    printf("%X\n", byte_code);
 
     return 0;
 }
@@ -330,7 +125,6 @@ static void asmTranslationError(unsigned int num) {
 
 int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str) {
     int *labels = (int *) calloc(LabelsNum, sizeof(*labels));
-    //int *callLabels = (int *) calloc(LabelsNum, sizeof(*callLabels));
 
     unsigned int pc = 0;
 
@@ -351,151 +145,10 @@ int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, ch
             *comment = 0;
         }
 
-        if (!strcmp(str_instr, "push")) {
+        #define DEF_CMD(name, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm_label}
+        #include "D:/Code/CLionProjects/asmCommands/commands.h"
+        #undef DEF_CMD
 
-            if (sscanf(asm_code->str_ptr[i], "push %d", &arg1) == 1) { //5b
-                pc += (sizeof(data_t) + 1);
-                continue;
-            }
-
-            if (sscanf(asm_code->str_ptr[i], "push %s", str_arg) == 1) {
-
-                if (!strcmp(str_arg, "ra")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rb")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rc")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rd")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (sscanf(asm_code->str_ptr[i], "push [%d]", &arg1) == 1) {
-                    pc += (sizeof(int) + 1);
-                    continue;
-                }
-            }
-
-            asmTranslationError(ASM_UNKNOWN_PUSH_ARG);
-        }
-
-        if (!strcmp(str_instr, "pop")) {
-
-            if (sscanf(asm_code->str_ptr[i], "pop %s", str_arg) == 1) {
-
-                if (!strcmp(str_arg, "ra")) {//5b
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rb")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rc")) {
-                    pc += 2;
-                    continue;
-                }
-
-                if (!strcmp(str_arg, "rd")) {
-                    pc += 2;
-                    continue;
-                }
-            }
-
-            if (sscanf(asm_code->str_ptr[i], "pop [%d]", &arg1) == 1) { // добавить в стек элемент из RAM[arg1]
-                pc += (sizeof(int) + 1);
-                continue;
-            }
-
-            if (!strcmp(str_arg, "")) {
-                pc++;
-                continue;
-            } else {
-                asmTranslationError(ASM_UNKNOWN_POP_ARG);
-            }
-
-        }
-
-        if (!strcmp(str_instr, "add")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "sub")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "mul")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "div")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "in")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "out")) {
-            pc++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "jmp")) {
-
-            if (sscanf(asm_code->str_ptr[i], "jmp :%d", &arg1)) {
-
-                if ((arg1 < 0) || (arg1 >= LabelsNum)) {
-                    asmTranslationError(ASM_WRONG_LABEL);
-                }
-
-                pc += (sizeof(int) + 1);
-                continue;
-            }
-
-        }
-
-        if (!strcmp(str_instr, "call")) {
-            pc += (sizeof(int) + 1);
-            continue;
-        }
-
-        if (!strcmp(str_instr, "ret")) {
-            pc ++;
-            continue;
-        }
-
-        if (!strcmp(str_instr, "ja")) {
-            pc += (sizeof(int) + 1);
-            continue;
-        }
-
-        if (!strcmp(str_instr, "jb")) {
-            pc += (sizeof(int) + 1);
-            continue;
-        }
-
-        if (!strcmp(str_instr, "je")) {
-            pc += (sizeof(int) + 1);
-            continue;
-        }
 
         if (sscanf(asm_code->str_ptr[i], ":%d", &arg1) == 1) {
             if ((arg1 < 0) || (arg1 >= LabelsNum)) {
@@ -506,25 +159,12 @@ int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, ch
             continue;
         }
 
-        if (!strcmp(str_instr, "end")) {
-            pc++;
-            continue;
-        }
-
-#ifdef CPU_EXTRA_COMMANDS
-        if (!strcmp(str_instr, "sqrt")) {
-            pc++;
-            continue;
-        }
-#endif
-
         if (!strcmp(asm_code->str_ptr[i], "")) {
             continue;
         } else {
             asmTranslationError(ASM_UNKNOWN_INSTRUCTION);
         }
     }
-    //struct Labels lab = {labels, callLabels};
 
     return labels;
 }
