@@ -3,7 +3,6 @@
 #include <mem.h>
 #include <assert.h>
 #include "readtext/readtext.h"
-#include "stack/stack.h"
 #include "asm.h"
 
 int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, char *str);
