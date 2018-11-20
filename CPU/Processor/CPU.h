@@ -54,28 +54,35 @@ enum CPUError {
     CPU_UNKNOWN_ERROR
 };
 
-enum instructions {
-    ASM_PUSH_CONST = 1,
-    ASM_PUSH_REG   = 2,
-    ASM_PUSH_RAM   = 3,
-    ASM_POP_REG    = 4,
-    ASM_POP_RAM    = 5,
-    ASM_POP_DEL    = 6, //delete //mb do popd instead of pop
-    ASM_ADD        = 7,
-    ASM_SUB        = 8,
-    ASM_MUL        = 9,
-    ASM_DIV        = 10,
-    ASM_IN         = 11,
-    ASM_OUT        = 12,
-    ASM_JMP        = 13,
-    ASM_CALL       = 14,
-    ASM_RET        = 15,
-    ASM_JA         = 16,//>
-    ASM_JB         = 17,//<
-    ASM_JE         = 18,//==
-    ASM_END        = 19,
-    ASM_INT_SQRT  = 20
+#define DEF_CMD(name, instr_enum, num, asm, asm_label, processing) ASM_##instr_enum = num,
+enum commands{
+#include "D:/Code/CLionProjects/asmCommands/commands.h"
+    ASM_MAX
 };
+#undef DEF_CMD
+
+//enum instructions {
+//    ASM_PUSH_CONST = 1,
+//    ASM_PUSH_REG   = 2,
+//    ASM_PUSH_RAM   = 3,
+//    ASM_POP_REG    = 4,
+//    ASM_POP_RAM    = 5,
+//    ASM_POP_DEL    = 6,
+//    ASM_ADD        = 7,
+//    ASM_SUB        = 8,
+//    ASM_MUL        = 9,
+//    ASM_DIV        = 10,
+//    ASM_IN         = 11,
+//    ASM_OUT        = 12,
+//    ASM_JMP        = 13,
+//    ASM_CALL       = 14,
+//    ASM_RET        = 15,
+//    ASM_JA         = 16,//>
+//    ASM_JB         = 17,//<
+//    ASM_JE         = 18,//==
+//    ASM_END        = 19,
+//    ASM_INT_SQRT  = 20
+//};
 
 char *readCode(char *filename, unsigned int *size);
 

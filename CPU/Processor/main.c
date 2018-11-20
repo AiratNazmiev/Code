@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 
         switch (CPU.byte_code[CPU.pc]) {
 
-        #define DEF_CMD(name, num, asm, asm_label, processing)  case num: {processing; break;}
+        #define DEF_CMD(name, instr_enum, num, asm, asm_label, processing)  case num: {processing; break;}
         #include "D:/Code/CLionProjects/asmCommands/commands.h"
         #undef DEF_CMD
 

@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
             *comment = 0;
         }
 
-        #define DEF_CMD(name, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm}
+        #define DEF_CMD(name, instr_enum, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm}
         #include "D:/Code/CLionProjects/asmCommands/commands.h"
         #undef DEF_CMD
 
@@ -145,7 +145,7 @@ int *asmLabels(struct LinkedBuffer *asm_code, char *str_instr, char *str_arg, ch
             *comment = 0;
         }
 
-        #define DEF_CMD(name, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm_label}
+        #define DEF_CMD(name, instr_enum, num, asm, asm_label, CPU) if (!strcmp(str_instr, #name)) {asm_label}
         #include "D:/Code/CLionProjects/asmCommands/commands.h"
         #undef DEF_CMD
 

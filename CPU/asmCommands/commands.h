@@ -1,4 +1,4 @@
-DEF_CMD(push, 1,
+DEF_CMD(push, PUSH_CONST, 1,
 {
     if (sscanf(asm_code.str_ptr[i], "push %d", &arg1) == 1) {
         byte_code[pc++] = ASM_PUSH_CONST;
@@ -87,20 +87,20 @@ DEF_CMD(push, 1,
     CPU.pc += sizeof(data_t);
 })
 
-DEF_CMD(pushReg, 2, , ,
+DEF_CMD(pushReg, PUSH_REG, 2, , ,
 {
     CPU.pc++;
     PUSH(CPU.registers[CPU.byte_code[CPU.pc++]]);
 })
 
-DEF_CMD(pushRam, 3, , ,
+DEF_CMD(pushRam, PUSH_RAM, 3, , ,
 {
     CPU.pc++;
     PUSH(CPU.ram[CPU.byte_code[CPU.pc]]);
     CPU.pc += sizeof(int);
 })
 
-DEF_CMD(pop, 4,
+DEF_CMD(pop, POP_REG, 4,
 {
 if (sscanf(asm_code.str_ptr[i], "pop %s", str_arg) == 1) {
 
@@ -187,20 +187,20 @@ if (sscanf(asm_code->str_ptr[i], "pop %s", str_arg) == 1) {
     CPU.registers[CPU.byte_code[CPU.pc++]] = POP;
 })
 
-DEF_CMD(popRam, 5, , ,
+DEF_CMD(popRam, POP_RAM, 5, , ,
 {
     CPU.pc++;
     CPU.ram[CPU.byte_code[CPU.pc]] = POP;
     CPU.pc += sizeof(int);
 })
 
-DEF_CMD(popDel, 6, , ,
+DEF_CMD(popDel, POP_DEL, 6, , ,
 {
     CPU.pc++;
     POP;
 })
 
-DEF_CMD(add, 7,
+DEF_CMD(add, ADD, 7,
 {
     byte_code[pc++] = ASM_ADD;
     continue;
@@ -216,7 +216,7 @@ DEF_CMD(add, 7,
     PUSH(POP + POP);
 })
 
-DEF_CMD(sub, 8,
+DEF_CMD(sub, SUB, 8,
 {
     byte_code[pc++] = ASM_SUB;
     continue;
@@ -232,7 +232,7 @@ DEF_CMD(sub, 8,
     PUSH(POP - POP);
 })
 
-DEF_CMD(mul, 9,
+DEF_CMD(mul, MUL, 9,
 {
     byte_code[pc++] = ASM_MUL;
     continue;
@@ -248,7 +248,7 @@ DEF_CMD(mul, 9,
     PUSH(POP * POP);
 })
 
-DEF_CMD(div, 10,
+DEF_CMD(div, DIV, 10,
 {
     byte_code[pc++] = ASM_DIV;
     continue;
@@ -264,7 +264,7 @@ DEF_CMD(div, 10,
     PUSH(POP / POP);
 })
 
-DEF_CMD(in, 11,
+DEF_CMD(in, IN, 11,
 {
     byte_code[pc++] = ASM_IN;
     continue;
@@ -287,7 +287,7 @@ DEF_CMD(in, 11,
     CPU.pc++;
 })
 
-DEF_CMD(out, 12,
+DEF_CMD(out, OUT, 12,
 {
     byte_code[pc++] = ASM_OUT;
     continue;
@@ -303,7 +303,7 @@ DEF_CMD(out, 12,
     CPU.pc++;
 })
 
-DEF_CMD(jmp, 13,
+DEF_CMD(jmp, JMP, 13,
 {
     if (sscanf(asm_code.str_ptr[i], "jmp :%d", &arg1) == 1) {
 
@@ -337,7 +337,7 @@ DEF_CMD(jmp, 13,
     CPU.pc = *(int *) (CPU.byte_code + CPU.pc);
 })
 
-DEF_CMD(call, 14,
+DEF_CMD(call, CALL, 14,
 {
     if (sscanf(asm_code.str_ptr[i], "call :%d", &arg1) == 1) {
         byte_code[pc++] = ASM_CALL;
@@ -360,7 +360,7 @@ DEF_CMD(call, 14,
     CPU.pc = *(int *) (CPU.byte_code + CPU.pc);
 })
 
-DEF_CMD(ret, 15,
+DEF_CMD(ret, RET, 15,
 {
     byte_code[pc++] = ASM_RET;
     continue;
@@ -376,7 +376,7 @@ DEF_CMD(ret, 15,
     CPU.pc = StackPop(&callStack);
 })
 
-DEF_CMD(ja, 16,
+DEF_CMD(ja, JA, 16,
 {
     if (sscanf(asm_code.str_ptr[i], "ja :%d", &arg1) == 1) {
         byte_code[pc++] = ASM_JA;
@@ -405,7 +405,7 @@ DEF_CMD(ja, 16,
     PUSH(a);
 })
 
-DEF_CMD(jb, 17,
+DEF_CMD(jb, JB, 17,
 {
     if (sscanf(asm_code.str_ptr[i], "jb :%d", &arg1) == 1) {
     byte_code[pc++] = ASM_JB;
@@ -434,7 +434,7 @@ DEF_CMD(jb, 17,
     PUSH(a);
 })
 
-DEF_CMD(je, 18,
+DEF_CMD(je, JE, 18,
 {
     if (sscanf(asm_code.str_ptr[i], "je :%d", &arg1) == 1) {
         byte_code[pc++] = ASM_JE;
@@ -463,7 +463,7 @@ DEF_CMD(je, 18,
     PUSH(a);
 })
 
-DEF_CMD(end, 19,
+DEF_CMD(end, END, 19,
 {
     byte_code[pc++] = ASM_END;
     continue;
@@ -478,7 +478,7 @@ DEF_CMD(end, 19,
     goto ASM_END_LABEL;
 })
 
-DEF_CMD(sqrt, 20,
+DEF_CMD(sqrt, INT_SQRT, 20,
 {
     byte_code[pc++] = ASM_INT_SQRT;
     continue;
